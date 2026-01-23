@@ -5,9 +5,16 @@
 BINARY		= moumou
 SRCFILES	= \
 	main.c \
+	core.c \
+	ui.c \
+	ai.c \
 
+HDRFILES	= \
+	core.h \
+	ui.h \
+	ai.h \
 
-$(BINARY): $(SRCFILES)
+$(BINARY): $(SRCFILES) $(HDRFILES)
 	gcc -Wextra -Wall -std=c99 -O0 -g -o $(BINARY) $(SRCFILES)
 
 run: $(BINARY)
