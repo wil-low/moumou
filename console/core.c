@@ -1,4 +1,6 @@
 #include "core.h"
+#include "ai.h"
+#include "ui.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -112,7 +114,7 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
     // check moumou
     if (p_card->_value == state->_last_card._value) {
         ++state->_moumou_counter;
-        if (state->_moumou_counter == 4)
+        if (state->_moumou_counter == SuitCount)
             result = PLAY_MOUMOU;
     } else
         state->_moumou_counter = 1;
@@ -146,14 +148,14 @@ void new_round(GameState *state) {
     state->_moumou_counter = 0;
 
     // Init deck
-    state->_deck._count = 9 * 4;
+    state->_deck._count = SuitCount * ValueCount;
     state->_table._count = 0;
     state->_played._count = 0;
     uint8_t idx = 0;
-    for (uint8_t s = 0; s < sizeof(suits); ++s) {
-        for (uint8_t v = 0; v < sizeof(values); ++v) {
-            state->_deck._items[idx]._value = values[v];
-            state->_deck._items[idx]._suit = suits[s];
+    for (uint8_t s = 0; s < SuitCount; ++s) {
+        for (uint8_t v = 0; v < ValueCount; ++v) {
+            state->_deck._items[idx]._value = v;
+            state->_deck._items[idx]._suit = s;
             ++idx;
         }
     }
@@ -193,36 +195,15 @@ void calculate_scores(GameState *state) {
 }
 
 uint8_t input_move(GameState *state) {
-    int result;
-    while (true) {
-        printf("Enter your choice: ");
-        char cmd[5];
-        scanf("%s", cmd);
-        if (strcmp(cmd, "d") == 0 && state->_valid_moves._draw)
-            return CMD_DRAW;
-        if (strcmp(cmd, "p") == 0 && state->_valid_moves._pass)
-            return CMD_PASS;
-        if (strcmp(cmd, "r") == 0)
-            return CMD_REPEAT_FIND;
-        if (sscanf(cmd, "%d", &result) == 1) {
-            if (result >= 0 && result < state->_valid_moves._count)
-                return result;
-        }
-    }
-    return 0; // never reach here
+    if (state->_players[state->_cur_player]._level == Human)
+        return human_move(state);
+    return ai_move(state);
 }
 
-Suit input_suit(GameState *) {
-    while (true) {
-        printf("Select suit (shdc): ");
-        char suit[5];
-        scanf("%s", suit);
-        if (suit[0] == Spades || suit[0] == Hearts || suit[0] == Diamonds ||
-            suit[0] == Clubs) {
-            return (Suit)suit[0];
-        }
-    }
-    return (Suit)Undefined;
+Suit input_suit(GameState *state) {
+    if (state->_players[state->_cur_player]._level == Human)
+        return human_demand_suit(state);
+    return ai_demand_suit(state);
 }
 
 void input_wait(const char *message) {

@@ -1,33 +1,35 @@
 #ifndef _CORE_H_
 #define _CORE_H_
 
+#include "config.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-#define Undefined ' '
+#define Undefined UINT8_MAX
 
 typedef enum : uint8_t {
-    Spades = 's',
-    Hearts = 'h',
-    Diamonds = 'd',
-    Clubs = 'c'
+    Spades = 0,
+    Hearts,
+    Diamonds,
+    Clubs,
+    SuitCount
 } Suit;
 
 typedef enum : uint8_t {
-    Six = '6',
-    Seven = '7',
-    Eight = '8',
-    Nine = '9',
-    Ten = 'T',
-    Jack = 'J',
-    Queen = 'Q',
-    King = 'K',
-    Ace = 'A'
+    Six = 0,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Jack,
+    Queen,
+    King,
+    Ace,
+    ValueCount
 } Value;
 
-static const Suit suits[] = {Spades, Hearts, Diamonds, Clubs};
-static const Value values[] = {Six,  Seven, Eight, Nine, Ten,
-                               Jack, Queen, King,  Ace};
+static const char SUITS[] = "shdc";
+static const char VALUES[] = "6789TJQKA";
 
 typedef struct {
     Value _value;
@@ -36,15 +38,15 @@ typedef struct {
 
 typedef struct {
     uint8_t _count;
-    Card _items[9 * 4];
+    Card _items[SuitCount * ValueCount];
 } Deck;
 
 typedef enum : uint8_t {
-    Human = 1 << 0,
-    Dealt = 1 << 1,
-} Flag;
+    Human = 0,
+    Level_1,
+    Level_2,
+} AILevel;
 
-#define MAX_CARDS_IN_HAND 16
 #define CMD_DRAW 253
 #define CMD_PASS 254
 #define CMD_REPEAT_FIND 255
@@ -54,13 +56,10 @@ typedef enum : uint8_t {
 #define PLAY_OPPONENT_SKIPS 2
 #define PLAY_MOUMOU 3
 
-#define PLAYER_COUNT 2
-#define INITIAL_HAND 5
-
 typedef struct {
-    uint8_t _flags;
+    AILevel _level;
     Deck _hand;
-    uint8_t _score;
+    uint16_t _score;
 } Player;
 
 typedef struct {

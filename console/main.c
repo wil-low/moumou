@@ -1,3 +1,4 @@
+#include "config.h"
 #include "core.h"
 #include "ui.h"
 #include <stdio.h>
@@ -9,14 +10,16 @@ GameState game_state;
 
 void setup() {
     printf("Moumou\n");
-    srand(time(NULL));
+
+    srand(RANDOM_SEED ? RANDOM_SEED : time(NULL));
 
     GameState *state = &game_state;
 
-    for (uint8_t i = 0; i < PLAYER_COUNT; ++i) {
-        state->_players[i]._flags = (i == 0) ? Human : 0;
+    for (uint8_t i = 0; i < PLAYER_COUNT; ++i)
         state->_players[i]._score = 0;
-    }
+    state->_players[0]._level = PLAYER0_LEVEL;
+    state->_players[1]._level = PLAYER1_LEVEL;
+
     new_round(state);
 }
 
@@ -44,7 +47,7 @@ void loop() {
         uint8_t result = play_card(state, state->_cur_player, card_idx);
         state->_demanded = Undefined;
         if (result == PLAY_DEMAND_SUIT) {
-            state->_demanded = input_suit(0);
+            state->_demanded = input_suit(state);
         } else if (result == PLAY_OPPONENT_SKIPS) {
             move_played_to_table(state);
         } else if (result == PLAY_MOUMOU) {

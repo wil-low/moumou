@@ -10,6 +10,7 @@ SRCFILES	= \
 	ai.c \
 
 HDRFILES	= \
+	config.h \
 	core.h \
 	ui.h \
 	ai.h \
