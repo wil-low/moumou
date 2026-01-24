@@ -13,8 +13,24 @@
             },
             "group": {
                 "kind": "build",
-                "isDefault": true // Makes this the default build task (run with Ctrl+Shift+B)
+                "isDefault": false // Makes this the default build task (run with Ctrl+Shift+B)
             }
+        },
+        {
+            "label": "Run LÖVE",
+            "type": "shell",
+            "command": "love",
+            "args": [
+                "."
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/love2d"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true // Makes this the default build task (run with Ctrl+Shift+B)
+            },
+            "problemMatcher": []
         }
     ]
 }
