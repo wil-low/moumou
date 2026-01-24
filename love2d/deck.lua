@@ -33,15 +33,20 @@ function Deck:deal()
     self.items = {}
 end
 
+function Deck:cardCoords(idx)
+    return self.x + (idx - 1) * slot_x, self.y
+end
+
 function Deck:draw()
     love.graphics.setColor(1, 1, 1)
     if self.faceUp then
         for i, card in ipairs(self.items) do
-            love.graphics.draw(card.image, self.x + (i - 1) * slot_x, self.y, 0, scale, scale, 0)
+            local x, y = self:cardCoords(i)
+            love.graphics.draw(card.image, x, y, 0, scale, scale, 0)
         end
     else
         love.graphics.draw(Deck.back, self.x, self.y, 0, scale, scale, 0)
     end
     love.graphics.setColor(0, 0, 0)
-    love.graphics.print(self.label, self.x, self.y + slot_y)
+    --love.graphics.print(self.label, self.x, self.y + slot_y)
 end

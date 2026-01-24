@@ -1,15 +1,21 @@
 require("core")
 
-local SUITS = "SHDC"
-local VALUES = "6789TJQKA"
-
 Card = {}
+Card.__index = Card
+
+Card.SUITS = "SHDC"
+Card.VALUES = "6789TJQKA"
+
+function Card:__tostring()
+    return string.sub(Card.VALUES, self.value, self.value)
+        .. string.sub(Card.SUITS, self.suit, self.suit)
+end
 
 function Card.init(suit, value, x, y)
     local self = setmetatable({}, Card)
-    self.image = love.graphics.newImage("img/" .. string.sub(VALUES, value, value) .. string.sub(SUITS, suit, suit) .. ".png")
     self.suit = suit
     self.value = value
+    self.image = love.graphics.newImage("img/" .. tostring(self) .. ".png")
     self.x = x
     self.y = y
     return self
