@@ -49,12 +49,11 @@ typedef enum : uint8_t {
 
 #define CMD_DRAW 253
 #define CMD_PASS 254
-#define CMD_REPEAT_FIND 255
 
 #define PLAY_OK 0
-#define PLAY_DEMAND_SUIT 1
-#define PLAY_OPPONENT_SKIPS 2
-#define PLAY_MOUMOU 3
+// #define PLAY_DEMAND_SUIT 1
+#define PLAY_OPPONENT_SKIPS 1
+#define PLAY_MOUMOU 2
 
 typedef struct {
     AILevel _level;

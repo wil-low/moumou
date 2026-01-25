@@ -9,7 +9,8 @@
 #define PLAYER1_LEVEL Level_2
 
 #define BOT_CARDS_VISIBLE 0
+#define RENDER_BOT_MOVES 0
 
-#define RANDOM_SEED 42
+#define RANDOM_SEED 0
 
 #endif

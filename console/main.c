@@ -40,15 +40,14 @@ void loop() {
     if (card_idx == CMD_DRAW) {
         draw(state, state->_cur_player, 1);
         state->_valid_moves._draw = false;
+        printf("Player #%d draws\n", state->_cur_player);
     } else if (card_idx == CMD_PASS) {
-    } else if (card_idx == CMD_REPEAT_FIND) {
+        printf("Player #%d passes\n", state->_cur_player);
     } else {
         card_idx = state->_valid_moves._items[card_idx];
         uint8_t result = play_card(state, state->_cur_player, card_idx);
         state->_demanded = Undefined;
-        if (result == PLAY_DEMAND_SUIT) {
-            state->_demanded = input_suit(state);
-        } else if (result == PLAY_OPPONENT_SKIPS) {
+        if (result == PLAY_OPPONENT_SKIPS) {
             move_played_to_table(state);
         } else if (result == PLAY_MOUMOU) {
             printf("Player #%d declares Moumou\n", state->_cur_player);
@@ -60,10 +59,21 @@ void loop() {
     state->_valid_moves._pass = state->_last_card._value != Six;
 
     if (card_idx == CMD_PASS) {
+        if (state->_played._count && state->_last_card._value == Jack) {
+            state->_demanded = Undefined;
+            state->_demanded = input_suit(state);
+            printf("Player #%d demands %c\n", state->_cur_player,
+                   SUITS[state->_demanded]);
+        }
         move_played_to_table(state);
         state->_valid_moves._pass = false;
         state->_turn++;
         state->_cur_player = (state->_cur_player + 1) % PLAYER_COUNT;
+        printf("\n======================== Player %d, turn %d "
+               "========================\n\n",
+               state->_cur_player, state->_turn);
+    } else {
+        // printf("=====\n\n");
     }
 }
 

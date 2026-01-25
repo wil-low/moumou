@@ -108,8 +108,6 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
         draw(state, next_player, 5);
         result = PLAY_OPPONENT_SKIPS;
     }
-    if (p_card->_value == Jack)
-        result = PLAY_DEMAND_SUIT;
 
     // check moumou
     if (p_card->_value == state->_last_card._value) {
@@ -129,6 +127,10 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
         p->_hand._items[i - 1] = p->_hand._items[i];
     }
     p->_hand._count--;
+
+    printf("Player #%d plays ", state->_cur_player);
+    render_card(&state->_last_card);
+    printf("\n");
 
     return result;
 }
@@ -159,6 +161,10 @@ void new_round(GameState *state) {
             ++idx;
         }
     }
+
+    printf("\n======================== New round, Player %d, turn %d "
+           "========================\n\n",
+           state->_cur_player, state->_turn);
 
     // Deal initial cards
     draw(state, 0, INITIAL_HAND);

@@ -41,8 +41,6 @@ void render_player(GameState *state, uint8_t idx) {
                 printf("      ");
             if (state->_valid_moves._pass)
                 printf("      p");
-        } else {
-            printf("\n");
         }
     }
     printf("\n\n");
@@ -66,19 +64,19 @@ void render_table(GameState *state) {
 }
 
 void render_game(GameState *state) {
-    printf("\n======================== Player %d, turn %d "
-           "========================\n\n",
-           state->_cur_player, state->_turn);
-
-    if (PLAYER0_LEVEL == Human && PLAYER1_LEVEL == Human) {
-        // rotate table
-        render_player(state, 1 - state->_cur_player);
-        render_table(state);
-        render_player(state, state->_cur_player);
-    } else {
-        render_player(state, 1);
-        render_table(state);
-        render_player(state, 0);
+    if (RENDER_BOT_MOVES ||
+        state->_players[state->_cur_player]._level == Human) {
+        printf("\n");
+        if (PLAYER0_LEVEL == Human && PLAYER1_LEVEL == Human) {
+            // rotate table
+            render_player(state, 1 - state->_cur_player);
+            render_table(state);
+            render_player(state, state->_cur_player);
+        } else {
+            render_player(state, 1);
+            render_table(state);
+            render_player(state, 0);
+        }
     }
 }
 
@@ -92,8 +90,6 @@ uint8_t human_move(GameState *state) {
             return CMD_DRAW;
         if (strcmp(cmd, "p") == 0 && state->_valid_moves._pass)
             return CMD_PASS;
-        if (strcmp(cmd, "r") == 0)
-            return CMD_REPEAT_FIND;
         if (sscanf(cmd, "%d", &result) == 1) {
             if (result >= 0 && result < state->_valid_moves._count)
                 return result;
@@ -112,5 +108,5 @@ Suit human_demand_suit(GameState *) {
                 return (Suit)i;
         }
     }
-    return (Suit)Undefined;
+    return (Suit)Undefined; // never reach here
 }
