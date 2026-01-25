@@ -124,9 +124,15 @@ function Game:setDemandedSuit(suit)
 end
 
 function Game:recycleDeck()
+    local n = #self.table.items - 4
+    for i = 1, n do
+        table.insert(self.deck.items, self.table.items[1])
+        table.remove(self.table.items, 1)
+    end
 end
 
 function Game:deal()
+    -- print("Game:deal:", #self.deck.items, #self.table.items)
     if #self.deck.items > 0 then
         local idx = math.random(1, #self.deck.items)
         local result = self.deck.items[idx]
@@ -134,9 +140,8 @@ function Game:deal()
         table.remove(self.deck.items, #self.deck.items)
         return result
     end
-    return nil
-    --self.recycleDeck()
-    --return self.deal()
+    self:recycleDeck()
+    return self:deal()
 end
 
 function Game:dealToPlayer(idx, count)
