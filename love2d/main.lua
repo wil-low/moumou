@@ -16,7 +16,7 @@ love.graphics.setFont(mainFont)
 ButtonManager.default.font = mainFont
 
 function love.load()
-    math.randomseed(45) -- os.time())
+    math.randomseed(os.time())
     love.graphics.setBackgroundColor(0.3,0.5,0.3)
     game = Game.init()
     game:new()

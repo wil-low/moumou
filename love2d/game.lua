@@ -4,7 +4,7 @@ require("gametable")
 require("player")
 require('lib/simplebutton/simplebutton')
 
-STARTING_HAND = 2
+STARTING_HAND = 5
 
 Game = {}
 Game.__index = Game
@@ -52,6 +52,8 @@ function Game.init()
         b.disabledColor = { 0.8, 0.8, 0.8, 0.8 }
         b.onClick = function()
             self:setDemandedSuit(i)
+            self:changePlayer()
+            self:turnLoop()
         end
     end
     self.cardButtons = {}
@@ -78,10 +80,21 @@ function Game:new()
 
     self.players[1]:clearHand()
     self.players[2]:clearHand()
+
+    -- self:dealCard(1, Value.King, Suit.Clubs)
+    -- self:dealCard(1, Value.Eight, Suit.Clubs)
+    -- self:dealCard(1, Value.Ten, Suit.Hearts)
+    -- self:dealCard(1, Value.Queen, Suit.Clubs)
+    -- self:dealCard(1, Value.Seven, Suit.Clubs)
+
     self:dealToPlayer(1, STARTING_HAND)
     self:dealToPlayer(2, STARTING_HAND)
 
-    self:playCard(self.curPlayer, 1)
+    local card = self:deal()
+    table.insert(self.table.items, card)
+    self.lastCard = card;
+    self.validMoves.draw = true
+
     self:turnLoop()
 end
 
@@ -95,7 +108,7 @@ end
 
 function Game:update(dt)
     if self.pendingMove then
-        print("pendingMove=" .. self.pendingMove .. ", buttons=" .. #ButtonManager.Buttons)
+        --print("pendingMove=" .. self.pendingMove .. ", buttons=" .. #ButtonManager.Buttons)
         self:processMove(self.pendingMove)
         self.pendingMove = nil
     end
@@ -107,7 +120,7 @@ function Game:setDemandedSuit(suit)
         self.suitButtons[i].enabled = (i == suit)
     end
     self.demandedSuit = suit
-    print("demandedSuit=" .. tostring(suit))
+    --print("demandedSuit=" .. tostring(suit))
 end
 
 function Game:recycleDeck()
@@ -131,6 +144,11 @@ function Game:dealToPlayer(idx, count)
         local card = self:deal()
         table.insert(self.players[idx].hand.items, card)
     end
+end
+
+function Game:dealCard(playerIdx, value, suit)
+    local card = Card.init(suit, value, 0, 0)
+    table.insert(self.players[playerIdx].hand.items, card)
 end
 
 function Game:findValidMoves(playerIdx)
@@ -179,9 +197,9 @@ function Game:findValidMoves(playerIdx)
                 b = ButtonManager.new("", x, y, Deck.back:getWidth() * scale, Deck.back:getHeight() * scale,
                     false, {0, 1, 0, 0.3}, {0, 0.8, 0, 0.3})
                 b.cardIdx = i
-                print("new button (" .. tostring(b) .. ") = " .. b.cardIdx .. ", total=" .. #ButtonManager.Buttons)
+                --print("new button (" .. tostring(b) .. ") = " .. b.cardIdx .. ", total=" .. #ButtonManager.Buttons)
                 b.onClick = function()
-                    print("onClick (" .. tostring(b) .. ") = " .. b.cardIdx)
+                    --print("onClick (" .. tostring(b) .. ") = " .. b.cardIdx)
                     self:disableButtons()
                     self.pendingMove = i
                 end
@@ -199,20 +217,7 @@ function Game:findValidMoves(playerIdx)
     return true
 end
 
-function Game:turnLoop()
-    print("\nturnLoop (player " .. self.curPlayer .. "): ")
-
-    local hasCards = self:findValidMoves(self.curPlayer)
-
-    if not hasCards then
-        print("Player " .. self.curPlayer .. " has no cards")
-        self:updateScores();
-        self:new();
-        return;
-    end
-    self.drawButton.interactable = self.validMoves.draw
-    self.passButton.interactable = self.validMoves.pass
-
+function Game:printValidMoves()
     io.write("validMoves (" .. (result and "Y" or "N") .. "): ")
     for i, v in ipairs(self.validMoves.items) do
         io.write(v .. " ")
@@ -224,32 +229,43 @@ function Game:turnLoop()
         io.write("pass ")
     end
     print()
+end
 
+function Game:turnLoop()
+    --print("\nturnLoop (player " .. self.curPlayer .. "): ")
+    local hasCards = self:findValidMoves(self.curPlayer)
+
+    if not hasCards then
+        print("Player " .. self.curPlayer .. " has no cards")
+        self:updateScores();
+        self:new();
+        return;
+    end
+    self.drawButton.interactable = self.validMoves.draw
+    self.passButton.interactable = self.validMoves.pass
+    --self:printValidMoves()
     self:processMove(self.players[self.curPlayer]:inputMove(self))
     return true
 end
 
 function Game:processMove(move)
-    print("processMove (player " .. self.curPlayer .. "): " .. tostring(move))
+    --print("processMove (player " .. self.curPlayer .. "): " .. tostring(move))
     if move == nil then
         return  -- human
     end
     if move == Move.Draw then
         self:dealToPlayer(self.curPlayer, 1)
         self.validMoves.draw = false
+        print("Player #" .. self.curPlayer .. " draws");
     elseif move == Move.Pass then
+        print("Player #" .. self.curPlayer .. " passes");
     else
         local result = self:playCard(self.curPlayer, move)
         self:setDemandedSuit(nil)
-        if result == Play.DemandSuit then
-            local suit = self.players[self.curPlayer]:inputSuit(self)
-            if suit ~= nil then
-                self:setDemandedSuit(suit)
-            end
-        elseif result == Play.OpponentSkips then
+        if result == Play.OpponentSkips then
             self:movePlayedToTable()
         elseif result == Play.Moumou then
-            printf("Player #%d declares Moumou", self.cur_player)
+            print("Player #" .. self.curPlayer .. " declares Moumou")
             self:calculate_scores()
             self:new()
             return
@@ -258,17 +274,22 @@ function Game:processMove(move)
     self.validMoves.pass = self.lastCard.value ~= Value.Six
 
     if move == Move.Pass then
-        self:movePlayedToTable()
-        self.validMoves.pass = false
-        --self.turn++;
-        self.curPlayer = self.curPlayer == 1 and 2 or 1
-        print("============== Player changed to " .. self.curPlayer .. " ==============")
+        if #self.played.items > 0 and self.lastCard.value == Value.Jack then 
+            local suit = self.players[self.curPlayer]:inputSuit(self)
+            if suit ~= nil then
+                print("Player #" .. self.curPlayer .. " demands " .. string.sub(Card.SUITS, suit, suit));
+                self:setDemandedSuit(suit)
+            else
+                return false
+            end
+        end
+        self:changePlayer()
     end
-    return self:turnLoop()   
+    return self:turnLoop()
 end
 
 function Game:playCard(playerIdx, cardIdx)
-    print("playCard (" .. playerIdx .. "): " .. cardIdx)
+    --print("playCard (" .. playerIdx .. "): " .. cardIdx)
     local p = self.players[playerIdx]
     local pCard = p.hand.items[cardIdx]
     -- apply effects
@@ -288,9 +309,6 @@ function Game:playCard(playerIdx, cardIdx)
         self:dealToPlayer(next_player, 5)
         result = Play.OpponentSkips
     end
-    if pCard.value == Value.Jack then
-        result = Play.DemandSuit
-    end
     -- check moumou
     if self.lastCard ~= nil and pCard.value == self.lastCard.value then
         self.moumouCounter = self.moumouCounter + 1
@@ -308,7 +326,15 @@ function Game:playCard(playerIdx, cardIdx)
     table.insert(self.played.items, pCard)
     table.remove(p.hand.items, cardIdx)
 
+    print("Player #" .. self.curPlayer .. " plays " .. tostring(self.lastCard))
     return result
+end
+
+function Game:changePlayer()
+    self:movePlayedToTable()
+    self.validMoves.pass = false
+    self.curPlayer = self.curPlayer == 1 and 2 or 1
+    print("============== Player changed to " .. self.curPlayer .. " ==============")
 end
 
 function Game:movePlayedToTable()

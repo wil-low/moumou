@@ -24,9 +24,8 @@ AILevel.Level_2 = 2
 
 Play = {}
 Play.OK = 0
-Play.DemandSuit = 1
-Play.OpponentSkips = 2
-Play.Moumou = 3
+Play.OpponentSkips = 1
+Play.Moumou = 2
 
 Move = {}
 Move.Draw = 253
