@@ -166,10 +166,28 @@ void new_round(GameState *state) {
            "========================\n\n",
            state->_cur_player, state->_turn);
 
+    // deal_card(state, 0, King, Clubs);
+    // deal_card(state, 0, Eight, Clubs);
+    // deal_card(state, 0, Ten, Hearts);
+    // deal_card(state, 0, Queen, Clubs);
+    // deal_card(state, 0, Seven, Clubs);
+
     // Deal initial cards
     draw(state, 0, INITIAL_HAND);
     draw(state, 1, INITIAL_HAND);
-    play_card(state, 0, 0);
+
+    Card first = deal(state);
+    state->_table._items[state->_table._count++] = first;
+    state->_last_card = first;
+}
+
+void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit) {
+    Card card;
+    card._value = value;
+    card._suit = suit;
+    Player *p = &state->_players[player_idx];
+    p->_hand._items[p->_hand._count] = card;
+    p->_hand._count++;
 }
 
 void calculate_scores(GameState *state) {

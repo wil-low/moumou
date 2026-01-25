@@ -9,9 +9,8 @@
 * **Initial deal:**
 
   * Each player receives **5 cards**.
-  * The dealer places **their last dealt card** on the table as the **first card played**.
-  * Dealer may then continue with **covering or combo plays** if applicable.
-* **Table visibility:** All cards played are tracked; only the **last 4 cards** are “visible” for strategy purposes.
+  * The dealer places the next card from the deck on the table, without effects.
+* **Table visibility:** Only the **last 4 cards** on the table are “visible” for strategy purposes.
 
 ---
 

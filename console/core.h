@@ -89,6 +89,7 @@ bool find_valid_moves(GameState *state, uint8_t player_idx);
 uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx);
 void new_round(GameState *state);
 void calculate_scores(GameState *state);
+void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit);
 
 uint8_t input_move(GameState *state);
 Suit input_suit(GameState *);
