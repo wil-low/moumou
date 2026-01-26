@@ -30,7 +30,7 @@ void loop() {
 
     if (!has_cards) {
         printf("Player #%d has no cards\n", state->_cur_player);
-        calculate_scores(state);
+        update_score(state);
         new_round(state);
         return;
     }
@@ -46,14 +46,16 @@ void loop() {
     } else {
         card_idx = state->_valid_moves._items[card_idx];
         uint8_t result = play_card(state, state->_cur_player, card_idx);
-        state->_demanded = Undefined;
-        if (result == PLAY_OPPONENT_SKIPS) {
-            move_played_to_table(state);
-        } else if (result == PLAY_MOUMOU) {
+        if (result == PLAY_MOUMOU) {
             printf("Player #%d declares Moumou\n", state->_cur_player);
-            calculate_scores(state);
+            update_score(state);
             new_round(state);
             return;
+        } else {
+            state->_demanded = Undefined;
+            state->_valid_moves._restrict_value =
+                result != PLAY_OPPONENT_SKIPS &&
+                state->_last_card._value != Six;
         }
     }
     state->_valid_moves._pass = state->_last_card._value != Six;
@@ -67,6 +69,7 @@ void loop() {
         }
         move_played_to_table(state);
         state->_valid_moves._pass = false;
+        state->_valid_moves._restrict_value = false;
         state->_turn++;
         state->_cur_player = (state->_cur_player + 1) % PLAYER_COUNT;
         printf("\n======================== Player %d, turn %d "

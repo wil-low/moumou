@@ -51,7 +51,6 @@ typedef enum : uint8_t {
 #define CMD_PASS 254
 
 #define PLAY_OK 0
-// #define PLAY_DEMAND_SUIT 1
 #define PLAY_OPPONENT_SKIPS 1
 #define PLAY_MOUMOU 2
 
@@ -66,6 +65,7 @@ typedef struct {
     uint8_t _count;
     bool _draw;
     bool _pass;
+    bool _restrict_value;
 } ValidMoves;
 
 typedef struct {
@@ -88,7 +88,8 @@ bool draw(GameState *state, uint8_t player_idx, uint8_t count);
 bool find_valid_moves(GameState *state, uint8_t player_idx);
 uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx);
 void new_round(GameState *state);
-void calculate_scores(GameState *state);
+uint16_t hand_score(GameState *state, uint8_t player_idx);
+void update_score(GameState *state);
 void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit);
 
 uint8_t input_move(GameState *state);

@@ -57,27 +57,20 @@ bool find_valid_moves(GameState *state, uint8_t player_idx) {
 
     for (uint8_t i = 0; i < p->_hand._count; i++) {
         Card *p_card = &p->_hand._items[i];
-        if (state->_played._count) {
-            if (state->_last_card._value == Six) {
-                if (p_card->_value != Jack &&
-                    p_card->_value != state->_last_card._value &&
-                    p_card->_suit != state->_last_card._suit)
-                    continue;
-            } else if (p_card->_value != state->_last_card._value)
-                continue;
-        } else {
-            if (p_card->_value == Jack || p_card->_value == Six) {
-            } else if (state->_demanded != Undefined) {
-                if (p_card->_suit != state->_demanded)
-                    continue;
-            } else if (state->_last_card._value != Undefined &&
-                       (p_card->_value == state->_last_card._value ||
-                        p_card->_suit == state->_last_card._suit)) {
-            } else {
-                continue;
+        bool allowed = true;
+        if (state->_valid_moves._restrict_value &&
+            p_card->_value != state->_last_card._value) {
+            allowed = false;
+        } else if (p_card->_value != Jack && p_card->_value != Six) {
+            if (p_card->_value != state->_last_card._value) {
+                if (state->_demanded != Undefined)
+                    allowed = p_card->_suit == state->_demanded;
+                else
+                    allowed = p_card->_suit == state->_last_card._suit;
             }
         }
-        state->_valid_moves._items[state->_valid_moves._count++] = i;
+        if (allowed)
+            state->_valid_moves._items[state->_valid_moves._count++] = i;
     }
     if (state->_last_card._value == Six) {
         state->_valid_moves._draw = true;
@@ -108,7 +101,6 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
         draw(state, next_player, 5);
         result = PLAY_OPPONENT_SKIPS;
     }
-
     // check moumou
     if (p_card->_value == state->_last_card._value) {
         ++state->_moumou_counter;
@@ -143,8 +135,9 @@ void new_round(GameState *state) {
     state->_cur_player = 0;
     state->_turn = 0;
     state->_demanded = Undefined;
-    state->_valid_moves._draw = false;
+    state->_valid_moves._draw = true;
     state->_valid_moves._pass = false;
+    state->_valid_moves._restrict_value = false;
     state->_last_card._suit = Undefined;
     state->_last_card._value = Undefined;
     state->_moumou_counter = 0;
@@ -190,28 +183,35 @@ void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit) {
     p->_hand._count++;
 }
 
-void calculate_scores(GameState *state) {
+uint16_t hand_score(GameState *state, uint8_t player_idx) {
+    uint16_t score = 0;
+    Player *p = &state->_players[player_idx];
+    for (uint8_t idx = 0; idx < p->_hand._count; ++idx) {
+        Value val = p->_hand._items[idx]._value;
+        switch (val) {
+        case Ten:
+        case Queen:
+        case King:
+            score += 10;
+            break;
+        case Ace:
+            score += 15;
+            break;
+        case Jack:
+            score += 20;
+            break;
+        default:
+            score += val + 6;
+            break;
+        }
+    }
+    return score;
+}
+
+void update_score(GameState *state) {
     for (uint8_t i = 0; i < PLAYER_COUNT; ++i) {
         Player *p = &state->_players[i];
-        for (uint8_t idx = 0; idx < p->_hand._count; ++idx) {
-            Value val = p->_hand._items[idx]._value;
-            switch (val) {
-            case Ten:
-            case Queen:
-            case King:
-                p->_score += 10;
-                break;
-            case Ace:
-                p->_score += 15;
-                break;
-            case Jack:
-                p->_score += 20;
-                break;
-            default:
-                p->_score += val - Six + 6;
-                break;
-            }
-        }
+        p->_score += hand_score(state, i);
         printf("Player #%d score: %d\n", i, p->_score);
     }
 
