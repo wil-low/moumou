@@ -38,6 +38,14 @@ function Game.init()
         self.pendingMove = Move.Pass
     end
 
+    self.gameOverButton = ButtonManager.new("", WIDE / 2 - slot_x - pad, HIGH / 2 - pad * 2,
+        slot_x * 2 + pad * 2, pad * 4, false, {0, 1, 0, 1})
+    self.gameOverButton.enabled = false
+    self.gameOverButton.onClick = function()
+        self.gameOverButton.enabled = false
+        self:new()
+    end
+
     local suitImage = love.graphics.newImage("img/C.png")
     self.suitButtons = {}
     local w = suitImage:getWidth() * scale
@@ -232,9 +240,7 @@ function Game:turnLoop()
     local hasCards = self:findValidMoves(self.curPlayer)
 
     if not hasCards then
-        print("Player " .. self.curPlayer .. " has no cards")
-        self:updateScores();
-        self:new();
+        self:over("has no cards")
         return;
     end
     self.drawButton.interactable = self.validMoves.draw
@@ -258,9 +264,7 @@ function Game:processMove(move)
     else
         local result = self:playCard(self.curPlayer, move)
         if result == Play.Moumou then
-            print("Player #" .. self.curPlayer .. " declares Moumou")
-            self:updateScores()
-            self:new()
+            self:over("declares Moumou")
             return
         else
             self:setDemandedSuit(nil)
@@ -355,6 +359,16 @@ function Game:updateScores()
         local p = self.players[i]
         p.score = p.score + p:handScore()
     end
+end
+
+function Game:over(message)
+    self:movePlayedToTable()
+    self:updateScores();
+    self.gameOverButton:setLabel("Game over!\nPlayer " .. self.curPlayer .. " " .. message, 'center')
+    self:disableButtons()
+    self.drawButton.interactable = false
+    self.passButton.interactable = false
+    self.gameOverButton.enabled = true
 end
 
 function Game:draw()
