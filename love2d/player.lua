@@ -6,13 +6,18 @@ function Player.init(idx, level, x, y)
     self.idx = idx
     self.level = level
     self.score = 0
-    self.hand = Deck.init("player " .. idx, x + slot_x, y, true) -- level == AILevel.Human)
+    self.hand = Deck.init("player " .. idx, x + slot_x, y, level == AILevel.Human)
     return self
 end
 
 function Player:draw()
     love.graphics.setColor(0, 0, 0)
     love.graphics.print("Score: " .. self.score, self.hand.x - slot_x, self.hand.y + pad)
+    if self.level == AILevel.Human then
+        love.graphics.print("Hand: " .. self:handScore(), self.hand.x - slot_x, self.hand.y + pad * 3)
+    else
+        love.graphics.print("Cards: " .. #self.hand.items, self.hand.x - slot_x, self.hand.y + pad * 3)
+    end
     love.graphics.setColor(1, 1, 1)
     self.hand:draw()
 end
@@ -28,7 +33,7 @@ function Player:handScore()
         elseif val == Value.Jack then
             score = score + 20
         else
-            score = val - Value.Six + 6
+            score = score + val + 5
         end
     end
     return score

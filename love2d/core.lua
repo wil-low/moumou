@@ -14,7 +14,7 @@ Value.Ten = 5
 Value.Jack = 6
 Value.Queen = 7
 Value.King = 8
-Value.ACE = 9
+Value.Ace = 9
 Value.Count = 9
 
 AILevel = {}

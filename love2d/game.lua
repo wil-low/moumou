@@ -74,8 +74,9 @@ function Game:new()
 
     self.validMoves = {
         items = {},
-        draw = false,
-        pass = false
+        draw = true,
+        pass = false,
+        restrictValue = false
     }
 
     self.players[1]:clearHand()
@@ -93,7 +94,6 @@ function Game:new()
     local card = self:deal()
     table.insert(self.table.items, card)
     self.lastCard = card;
-    self.validMoves.draw = true
 
     self:turnLoop()
 end
@@ -163,54 +163,45 @@ function Game:findValidMoves(playerIdx)
     end
 
     self.validMoves.items = {}
+    -- print("Game:findValidMoves: lastCard", self.lastCard, "restrictValue", self.validMoves.restrictValue)
 
     for i = 1, #p.hand.items do
         local pCard = p.hand.items[i]
-        if #self.played.items > 0 then
-            if self.lastCard.value == Value.Six then
-                if pCard.value ~= Value.Jack and
-                    pCard.value ~= self.lastCard.value and
-                    pCard.suit ~= self.lastCard.suit then
-                        goto continue
-                end
-            elseif pCard.value ~= self.lastCard.value then
-                goto continue
-            end
-        else
-            if pCard.value == Value.Jack or pCard.value == Value.Six then
-            elseif self.demandedSuit ~= nil then
-                if pCard.suit ~= self.demandedSuit then
-                    goto continue
-                end
-            elseif self.lastCard ~= nil and
-                       (pCard.value == self.lastCard.value or
-                        pCard.suit == self.lastCard.suit) then
-            else
-                goto continue
-            end
-        end
-        table.insert(self.validMoves.items, i)
-        if p.level == AILevel.Human then
-            local x, y = p.hand:cardCoords(i)
-            local b = self.cardButtons[i]
-            if b ~= nil then
-                b.enabled = true
-                b.interactable = true
-                b.x = x
-                b.y = y
-            else
-                b = ButtonManager.new("", x, y, Deck.back:getWidth() * scale, Deck.back:getHeight() * scale,
-                    false, {0, 1, 0, 0.3}, {0, 0.8, 0, 0.3})
-                b.cardIdx = i
-                --print("new button (" .. tostring(b) .. ") = " .. b.cardIdx .. ", total=" .. #ButtonManager.Buttons)
-                b.onClick = function()
-                    --print("onClick (" .. tostring(b) .. ") = " .. b.cardIdx)
-                    self:disableButtons()
-                    self.pendingMove = i
+        local allowed = true
+        if self.validMoves.restrictValue and pCard.value ~= self.lastCard.value then
+            allowed = false
+        elseif pCard.value ~= Value.Jack and pCard.value ~= Value.Six then
+            if pCard.value ~= self.lastCard.value then
+                if self.demandedSuit ~= nil then
+                    allowed = pCard.suit == self.demandedSuit
+                else
+                    allowed = pCard.suit == self.lastCard.suit
                 end
             end
         end
-        ::continue::
+        if allowed then
+            table.insert(self.validMoves.items, i)
+            if p.level == AILevel.Human then
+                local x, y = p.hand:cardCoords(i)
+                local b = self.cardButtons[i]
+                if b ~= nil then
+                    b.enabled = true
+                    b.interactable = true
+                    b.x = x
+                    b.y = y
+                else
+                    b = ButtonManager.new("", x, y, Deck.back:getWidth() * scale, Deck.back:getHeight() * scale,
+                        false, {0, 1, 0, 0.3}, {0, 0.8, 0, 0.3})
+                    b.cardIdx = i
+                    --print("new button (" .. tostring(b) .. ") = " .. b.cardIdx .. ", total=" .. #ButtonManager.Buttons)
+                    b.onClick = function()
+                        --print("onClick (" .. tostring(b) .. ") = " .. b.cardIdx)
+                        self:disableButtons()
+                        self.pendingMove = i
+                    end
+                end
+            end
+        end
     end
     if self.lastCard.value == Value.Six then
         self.validMoves.draw = true
@@ -266,14 +257,14 @@ function Game:processMove(move)
         print("Player #" .. self.curPlayer .. " passes");
     else
         local result = self:playCard(self.curPlayer, move)
-        self:setDemandedSuit(nil)
-        if result == Play.OpponentSkips then
-            self:movePlayedToTable()
-        elseif result == Play.Moumou then
+        if result == Play.Moumou then
             print("Player #" .. self.curPlayer .. " declares Moumou")
-            self:calculate_scores()
+            self:updateScores()
             self:new()
             return
+        else
+            self:setDemandedSuit(nil)
+            self.validMoves.restrictValue = result ~= Play.OpponentSkips and self.lastCard.value ~= Value.Six
         end
     end
     self.validMoves.pass = self.lastCard.value ~= Value.Six
@@ -338,6 +329,7 @@ end
 function Game:changePlayer()
     self:movePlayedToTable()
     self.validMoves.pass = false
+    self.validMoves.restrictValue = false
     self.curPlayer = self.curPlayer == 1 and 2 or 1
     print("============== Player changed to " .. self.curPlayer .. " ==============")
 end
