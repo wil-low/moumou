@@ -76,7 +76,7 @@ function Game:new()
 
     self.deck:createCards()
     self.lastCard = nil
-    self.moumouCounter = 0
+    self.moumouCounter = 1
     self.curPlayer = 1
     self:setDemandedSuit(nil)
 
