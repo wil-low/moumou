@@ -2,9 +2,6 @@ ButtonManager = require('lib/simplebutton/simplebutton')
 require("conf")
 require("game")
 
-WIDE = 1280
-HIGH = 1000
-
 STATE = nil
 
 mainFont = love.graphics.newFont("font/LeagueSpartan-Regular.ttf", 28)
@@ -40,4 +37,12 @@ function love.draw()
     STATE:draw()
     ButtonManager.draw()
     --print(love.graphics.getStats().drawcalls)
+end
+
+function love.resize(w, h)
+    print(("Window resized to width: %d and height: %d."):format(w, h))
+    slot_x = w / 9
+    slot_y = h / 5
+    scale = slot_y / 1052
+    pad = w * 0.02
 end

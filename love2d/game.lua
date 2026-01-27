@@ -11,16 +11,16 @@ Game.__index = Game
 
 function Game.init()
     local self = setmetatable({}, Game)
-    scale = Game.scaler(WIDE, 1052)
+    love.resize(love.graphics.getWidth(), love.graphics.getHeight())
     self.players = {
         Player.init(1, AILevel.Human, pad * 3, slot_y * 4 - pad),
         Player.init(2, AILevel.Level_1, pad * 3, pad)
     }
     self.pendingMove = nil
 
-    self.deck = Deck.init("deck", pad, HIGH / 2 - slot_y - pad, false)
-    self.table = GameTable.init("table", pad * 3 + slot_x, HIGH / 2 - slot_y - pad, slot_x * 7)
-    self.played = Deck.init("played", pad * 3 + slot_x, HIGH / 2 + pad, true, slot_x * 7)
+    self.deck = Deck.init("deck", pad, love.graphics.getHeight() / 2 - slot_y - pad, false)
+    self.table = GameTable.init("table", pad * 3 + slot_x, love.graphics.getHeight() / 2 - slot_y - pad, slot_x * 7)
+    self.played = Deck.init("played", pad * 3 + slot_x, love.graphics.getHeight() / 2 + pad, true, slot_x * 7)
 
     self.drawButton = ButtonManager.new("Draw", self.deck.x, self.deck.y + slot_y + pad,
         Deck.back:getWidth() * scale, Deck.back:getHeight() * scale / 6, false, {0, 1, 0, 1})
@@ -38,7 +38,7 @@ function Game.init()
         self.pendingMove = Move.Pass
     end
 
-    self.gameOverButton = ButtonManager.new("", WIDE / 2 - slot_x - pad, HIGH / 2 - pad * 2,
+    self.gameOverButton = ButtonManager.new("", love.graphics.getWidth() / 2 - slot_x - pad, love.graphics.getHeight() / 2 - pad * 2,
         slot_x * 2 + pad * 2, pad * 4, false, {0, 1, 0, 1})
     self.gameOverButton.enabled = false
     self.gameOverButton.onClick = function()
@@ -104,14 +104,6 @@ function Game:new()
     self.lastCard = card;
 
     self:turnLoop()
-end
-
-function Game.scaler(WIDE, cardHeight)
-    slot_x = WIDE / 9
-    slot_y = HIGH / 5
-    scale = slot_y / cardHeight
-    pad = WIDE * 0.02
-    return scale
 end
 
 function Game:update(dt)
