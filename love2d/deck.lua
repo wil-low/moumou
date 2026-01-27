@@ -43,7 +43,6 @@ function Deck:cardCoords(idx)
 end
 
 function Deck:draw()
-    love.graphics.setColor(1, 1, 1)
     if #self.items > 0 then
         if self.maxWidth ~= nil then
             for i, card in ipairs(self.items) do
@@ -54,6 +53,4 @@ function Deck:draw()
             love.graphics.draw(Deck.back, self.x, self.y, 0, scale, scale, 0)
         end
     end
-    love.graphics.setColor(0, 0, 0)
-    --love.graphics.print(self.label, self.x, self.y + slot_y)
 end
