@@ -6,13 +6,14 @@ Deck.__index = Deck
 
 Deck.back = love.graphics.newImage("img/red_back.png")
 
-function Deck.init(label, x, y, faceUp)
+function Deck.init(label, x, y, faceUp, maxWidth)
     local self = setmetatable({}, Deck)
     self.label = label
     self.x = x
     self.y = y
     self.items = {}
     self.faceUp = faceUp
+    self.maxWidth = maxWidth
     return self
 end
 
@@ -29,21 +30,25 @@ function Deck:clear()
     self.items = {}
 end
 
-function Deck:deal()
-    self.items = {}
-end
-
 function Deck:cardCoords(idx)
-    return self.x + (idx - 1) * slot_x, self.y
+    local spacing = slot_x
+    local w = Deck.back:getWidth() * scale
+    if self.maxWidth ~= nil and #self.items > 1 then
+        spacing = math.min(spacing, (self.maxWidth - w) / (#self.items - 1))
+        if idx < #self.items then
+            w = math.min(spacing, w)
+        end
+    end
+    return self.x + (idx - 1) * spacing, self.y, w, Deck.back:getHeight() * scale
 end
 
 function Deck:draw()
     love.graphics.setColor(1, 1, 1)
     if #self.items > 0 then
-        if self.faceUp then
+        if self.maxWidth ~= nil then
             for i, card in ipairs(self.items) do
                 local x, y = self:cardCoords(i)
-                love.graphics.draw(card.image, x, y, 0, scale, scale, 0)
+                love.graphics.draw(self.faceUp and card.image or Deck.back, x, y, 0, scale, scale, 0)
             end
         else
             love.graphics.draw(Deck.back, self.x, self.y, 0, scale, scale, 0)

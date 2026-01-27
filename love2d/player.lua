@@ -6,7 +6,7 @@ function Player.init(idx, level, x, y)
     self.idx = idx
     self.level = level
     self.score = 0
-    self.hand = Deck.init("player " .. idx, x + slot_x, y, level == AILevel.Human)
+    self.hand = Deck.init("player " .. idx, x + slot_x, y, level == AILevel.Human, slot_x * 7)
     return self
 end
 

@@ -19,8 +19,8 @@ function Game.init()
     self.pendingMove = nil
 
     self.deck = Deck.init("deck", pad, HIGH / 2 - slot_y - pad, false)
-    self.table = GameTable.init("table", pad * 3 + slot_x, HIGH / 2 - slot_y - pad)
-    self.played = Deck.init("played", pad * 3 + slot_x, HIGH / 2 + pad, true)
+    self.table = GameTable.init("table", pad * 3 + slot_x, HIGH / 2 - slot_y - pad, slot_x * 7)
+    self.played = Deck.init("played", pad * 3 + slot_x, HIGH / 2 + pad, true, slot_x * 7)
 
     self.drawButton = ButtonManager.new("Draw", self.deck.x, self.deck.y + slot_y + pad,
         Deck.back:getWidth() * scale, Deck.back:getHeight() * scale / 6, false, {0, 1, 0, 1})
@@ -190,17 +190,20 @@ function Game:findValidMoves(playerIdx)
         if allowed then
             table.insert(self.validMoves.items, i)
             if p.level == AILevel.Human then
-                local x, y = p.hand:cardCoords(i)
+                local x, y, w, h = p.hand:cardCoords(i)
                 local b = self.cardButtons[i]
                 if b ~= nil then
                     b.enabled = true
                     b.interactable = true
                     b.x = x
                     b.y = y
+                    b.width = w
+                    b.height = h
                 else
-                    b = ButtonManager.new("", x, y, Deck.back:getWidth() * scale, Deck.back:getHeight() * scale,
+                    b = ButtonManager.new("", x, y, w, h,
                         false, {0, 1, 0, 0.3}, {0, 0.8, 0, 0.3})
                     b.cardIdx = i
+                    self.cardButtons[i] = b
                     --print("new button (" .. tostring(b) .. ") = " .. b.cardIdx .. ", total=" .. #ButtonManager.Buttons)
                     b.onClick = function()
                         --print("onClick (" .. tostring(b) .. ") = " .. b.cardIdx)

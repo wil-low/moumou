@@ -1,5 +1,5 @@
 ButtonManager = require('lib/simplebutton/simplebutton')
-
+require("conf")
 require("game")
 
 WIDE = 1280
@@ -8,9 +8,6 @@ HIGH = 1000
 STATE = nil
 
 mainFont = love.graphics.newFont("font/LeagueSpartan-Regular.ttf", 28)
-
-love.window.setTitle(' Moumou ')
-love.window.setMode( WIDE,HIGH )
 
 love.graphics.setFont(mainFont)
 ButtonManager.default.font = mainFont
@@ -42,4 +39,5 @@ end
 function love.draw()
     STATE:draw()
     ButtonManager.draw()
+    --print(love.graphics.getStats().drawcalls)
 end
