@@ -50,8 +50,16 @@ bool draw(GameState *state, uint8_t player_idx, uint8_t count) {
 
 bool find_valid_moves(GameState *state, uint8_t player_idx) {
     Player *p = &state->_players[player_idx];
-    if (p->_hand._count == 0)
+    if (p->_hand._count == 0) {
+        if (state->_played._count && (state->_last_card._value == Six ||
+                                      state->_last_card._value == Ace)) {
+            // cannot finish with Ace or 6
+            state->_valid_moves._draw = true;
+            state->_valid_moves._pass = false;
+            return true;
+        }
         return false;
+    }
 
     state->_valid_moves._count = 0;
 

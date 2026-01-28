@@ -159,6 +159,12 @@ end
 function Game:findValidMoves(playerIdx)
     local p = self.players[playerIdx]
     if #p.hand.items == 0 then
+        if #self.played.items > 0 and (self.lastCard.value == Value.Six or self.lastCard.value == Value.Ace) then
+            -- cannot finish with Ace or 6
+            self.validMoves.draw = true
+            self.validMoves.pass = false
+            return true
+        end           
         return false
     end
 
