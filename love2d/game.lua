@@ -157,6 +157,7 @@ function Game:dealCard(playerIdx, value, suit)
 end
 
 function Game:findValidMoves(playerIdx)
+    self.validMoves.items = {}
     local p = self.players[playerIdx]
     if #p.hand.items == 0 then
         if #self.played.items > 0 and (self.lastCard.value == Value.Six or self.lastCard.value == Value.Ace) then
@@ -168,7 +169,6 @@ function Game:findValidMoves(playerIdx)
         return false
     end
 
-    self.validMoves.items = {}
     -- print("Game:findValidMoves: lastCard", self.lastCard, "restrictValue", self.validMoves.restrictValue)
 
     for i = 1, #p.hand.items do
@@ -222,7 +222,7 @@ function Game:findValidMoves(playerIdx)
     return true
 end
 
-function Game:printValidMoves()
+function Game:printValidMoves(result)
     io.write("validMoves (" .. (result and "Y" or "N") .. "): ")
     for i, v in ipairs(self.validMoves.items) do
         io.write(v .. " ")
@@ -239,6 +239,7 @@ end
 function Game:turnLoop()
     --print("\nturnLoop (player " .. self.curPlayer .. "): ")
     local hasCards = self:findValidMoves(self.curPlayer)
+    self:printValidMoves(hasCards)
 
     if not hasCards then
         self:over("has no cards")
@@ -246,7 +247,6 @@ function Game:turnLoop()
     end
     self.drawButton.interactable = self.validMoves.draw
     self.passButton.interactable = self.validMoves.pass
-    --self:printValidMoves()
     self:processMove(self.players[self.curPlayer]:inputMove(self))
     return true
 end

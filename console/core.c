@@ -49,6 +49,8 @@ bool draw(GameState *state, uint8_t player_idx, uint8_t count) {
 }
 
 bool find_valid_moves(GameState *state, uint8_t player_idx) {
+    state->_valid_moves._count = 0;
+
     Player *p = &state->_players[player_idx];
     if (p->_hand._count == 0) {
         if (state->_played._count && (state->_last_card._value == Six ||
@@ -60,8 +62,6 @@ bool find_valid_moves(GameState *state, uint8_t player_idx) {
         }
         return false;
     }
-
-    state->_valid_moves._count = 0;
 
     for (uint8_t i = 0; i < p->_hand._count; i++) {
         Card *p_card = &p->_hand._items[i];
