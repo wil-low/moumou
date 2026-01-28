@@ -32,8 +32,6 @@ function Player:handScore()
             score = score + 15
         elseif val == Value.Jack then
             score = score + 20
-        else
-            score = score + val + 5
         end
     end
     return score

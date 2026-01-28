@@ -209,7 +209,6 @@ uint16_t hand_score(GameState *state, uint8_t player_idx) {
             score += 20;
             break;
         default:
-            score += val + 6;
             break;
         }
     }
