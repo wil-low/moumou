@@ -89,6 +89,7 @@ function Game:new()
 
     self.players[1]:clearHand()
     self.players[2]:clearHand()
+    self.players[2].hand.faceUp = false
 
     -- self:dealCard(1, Value.King, Suit.Clubs)
     -- self:dealCard(1, Value.Eight, Suit.Clubs)
@@ -239,7 +240,7 @@ end
 function Game:turnLoop()
     --print("\nturnLoop (player " .. self.curPlayer .. "): ")
     local hasCards = self:findValidMoves(self.curPlayer)
-    self:printValidMoves(hasCards)
+    --self:printValidMoves(hasCards)
 
     if not hasCards then
         self:over("has no cards")
@@ -364,6 +365,7 @@ end
 
 function Game:over(message)
     self:movePlayedToTable()
+    self.players[2].hand.faceUp = true  -- show bot's hand
     self:updateScores();
     self.gameOverButton:setLabel("Game over!\nPlayer " .. self.curPlayer .. " " .. message, 'center')
     self:disableButtons()
