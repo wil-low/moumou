@@ -21,7 +21,7 @@ function Deck:createCards()
     self.items = {}
     for v = 1, Value.Count do
         for s = 1, Suit.Count do
-            self.items[#self.items + 1] = Card.init(s, v, #self.items * 20, 0)
+            self.items[#self.items + 1] = Card.init(s, v, 0, 0)
         end
     end
 end
@@ -42,12 +42,19 @@ function Deck:cardCoords(idx)
     return self.x + (idx - 1) * spacing, self.y, w, Deck.back:getHeight() * scale
 end
 
+function Deck:realign()
+    if self.maxWidth ~= nil then
+        for i, card in ipairs(self.items) do
+            card.x, card.y = self:cardCoords(i)
+        end
+    end
+end
+
 function Deck:draw()
     if #self.items > 0 then
         if self.maxWidth ~= nil then
-            for i, card in ipairs(self.items) do
-                local x, y = self:cardCoords(i)
-                love.graphics.draw(self.faceUp and card.image or Deck.back, x, y, 0, scale, scale, 0)
+            for _, card in ipairs(self.items) do
+                card:draw(self.faceUp)
             end
         else
             love.graphics.draw(Deck.back, self.x, self.y, 0, scale, scale, 0)

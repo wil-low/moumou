@@ -150,6 +150,7 @@ function Game:dealToPlayer(idx, count)
         local card = self:deal()
         table.insert(self.players[idx].hand.items, card)
     end
+    self.players[idx].hand:realign()
 end
 
 function Game:dealCard(playerIdx, value, suit)
@@ -327,6 +328,8 @@ function Game:playCard(playerIdx, cardIdx)
     self.lastCard = pCard
     table.insert(self.played.items, pCard)
     table.remove(p.hand.items, cardIdx)
+    self.played:realign()
+    p.hand:realign()
 
     print("Player #" .. self.curPlayer .. " plays " .. tostring(self.lastCard))
     return result

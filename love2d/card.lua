@@ -21,3 +21,6 @@ function Card.init(suit, value, x, y)
     return self
 end
 
+function Card:draw(faceUp)
+    love.graphics.draw(faceUp and self.image or Deck.back, self.x, self.y, 0, scale, scale, 0)
+end
