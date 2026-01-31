@@ -79,7 +79,7 @@ function Player:inputSuit(game)
         end
         local maxIdx = 1
         for i = 1, Suit.Count do
-            if count_by_suit[i] > count_by_suit[maxIdx] then
+            if countBySuit[i] > countBySuit[maxIdx] then
                 maxIdx = i
             end
         end

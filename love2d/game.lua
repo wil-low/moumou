@@ -14,7 +14,7 @@ function Game.init()
     love.resize(love.graphics.getWidth(), love.graphics.getHeight())
     self.players = {
         Player.init(1, AILevel.Human, pad * 3, slot_y * 4 - pad),
-        Player.init(2, AILevel.Level_1, pad * 3, pad)
+        Player.init(2, AILevel.Level_2, pad * 3, pad)
     }
     self.pendingMove = nil
 
