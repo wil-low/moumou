@@ -24,6 +24,7 @@ function Deck:createCards()
             self.items[#self.items + 1] = Card.init(s, v, 0, 0)
         end
     end
+    self:realign()
 end
 
 function Deck:clear()
@@ -43,9 +44,11 @@ function Deck:cardCoords(idx)
 end
 
 function Deck:realign()
-    if self.maxWidth ~= nil then
-        for i, card in ipairs(self.items) do
+    for i, card in ipairs(self.items) do
+        if self.maxWidth ~= nil then
             card.x, card.y = self:cardCoords(i)
+        else
+            card.x, card.y = self.x, self.y
         end
     end
 end
@@ -54,7 +57,7 @@ function Deck:draw()
     if #self.items > 0 then
         if self.maxWidth ~= nil then
             for _, card in ipairs(self.items) do
-                card:draw(self.faceUp)
+                card:draw()
             end
         else
             love.graphics.draw(Deck.back, self.x, self.y, 0, scale, scale, 0)

@@ -75,6 +75,7 @@ function Game:new()
     self.played:clear()
 
     self.deck:createCards()
+    self:shuffle()
     self.lastCard = nil
     self.moumouCounter = 1
     self.curPlayer = 1
@@ -129,6 +130,16 @@ function Game:recycleDeck()
     for i = 1, n do
         table.insert(self.deck.items, self.table.items[1])
         table.remove(self.table.items, 1)
+    end
+    self:shuffle()
+end
+
+function Game:shuffle()
+    for i, card in ipairs(self.deck.items) do
+        local idx = math.random(1, #self.deck.items)
+        local tmp = self.deck.items[idx]
+        self.deck.items[idx] = card
+        self.deck.items[i] = tmp
     end
 end
 

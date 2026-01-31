@@ -18,9 +18,10 @@ function Card.init(suit, value, x, y)
     self.image = love.graphics.newImage("img/" .. tostring(self) .. ".png")
     self.x = x
     self.y = y
+    self.faceUp = false
     return self
 end
 
-function Card:draw(faceUp)
-    love.graphics.draw(faceUp and self.image or Deck.back, self.x, self.y, 0, scale, scale, 0)
+function Card:draw()
+    love.graphics.draw(self.faceUp and self.image or Deck.back, self.x, self.y, 0, scale, scale, 0)
 end
