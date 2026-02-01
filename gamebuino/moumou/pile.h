@@ -1,5 +1,5 @@
-#include <Gamebuino.h>
 #include "card.h"
+#include <Gamebuino.h>
 
 #ifndef PILE_H
 #define PILE_H
@@ -12,14 +12,14 @@ class Pile {
     byte getCardCount() const;
     Card getCard(int indexFromTop) const;
     Card removeTopCard();
-    void removeCards(int count, Pile* destination);
+    void removeCards(int count, Pile *destination);
     void empty();
     void shuffle();
     void newDeck();
     byte getMaxCards() const;
     byte x, y;
     bool isTableau;
-    
+
   private:
     Card *_cards;
     byte _maxCards;
