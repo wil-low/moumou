@@ -30,7 +30,7 @@ Suit ai_demand_suit(GameState *state) {
     case Level_2: {
         uint8_t count_by_suit[SuitCount] = {0, 0, 0, 0};
         for (uint8_t i = 0; i < p->_hand._count; ++i) {
-            count_by_suit[p->_hand._items[i]._suit]++;
+            count_by_suit[CardSuit(p->_hand._items[i])]++;
         }
         uint8_t max_idx = 0;
         for (uint8_t i = 1; i < SuitCount; ++i) {

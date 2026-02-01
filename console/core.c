@@ -53,8 +53,8 @@ bool find_valid_moves(GameState *state, uint8_t player_idx) {
 
     Player *p = &state->_players[player_idx];
     if (p->_hand._count == 0) {
-        if (state->_played._count && (state->_last_card._value == Six ||
-                                      state->_last_card._value == Ace)) {
+        if (state->_played._count && (CardValue(state->_last_card) == Six ||
+                                      CardValue(state->_last_card) == Ace)) {
             // cannot finish with Ace or 6
             state->_valid_moves._draw = true;
             state->_valid_moves._pass = false;
@@ -67,20 +67,20 @@ bool find_valid_moves(GameState *state, uint8_t player_idx) {
         Card *p_card = &p->_hand._items[i];
         bool allowed = true;
         if (state->_valid_moves._restrict_value &&
-            p_card->_value != state->_last_card._value) {
+            CardValue(*p_card) != CardValue(state->_last_card)) {
             allowed = false;
-        } else if (p_card->_value != Jack && p_card->_value != Six) {
-            if (p_card->_value != state->_last_card._value) {
+        } else if (CardValue(*p_card) != Jack && CardValue(*p_card) != Six) {
+            if (CardValue(*p_card) != CardValue(state->_last_card)) {
                 if (state->_demanded != Undefined)
-                    allowed = p_card->_suit == state->_demanded;
+                    allowed = CardSuit(*p_card) == state->_demanded;
                 else
-                    allowed = p_card->_suit == state->_last_card._suit;
+                    allowed = CardSuit(*p_card) == CardSuit(state->_last_card);
             }
         }
         if (allowed)
             state->_valid_moves._items[state->_valid_moves._count++] = i;
     }
-    if (state->_last_card._value == Six) {
+    if (CardValue(state->_last_card) == Six) {
         state->_valid_moves._draw = true;
         state->_valid_moves._pass = false;
     }
@@ -95,22 +95,22 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
     // apply effects
     uint8_t result = PLAY_OK;
     uint8_t next_player = (player_idx + 1) % PLAYER_COUNT;
-    if (p_card->_value == Eight) {
+    if (CardValue(*p_card) == Eight) {
         draw(state, next_player, 2);
         result = PLAY_OPPONENT_SKIPS;
     }
-    if (p_card->_value == Ace) {
+    if (CardValue(*p_card) == Ace) {
         result = PLAY_OPPONENT_SKIPS;
     }
-    if (p_card->_value == Seven) {
+    if (CardValue(*p_card) == Seven) {
         draw(state, next_player, 1);
     }
-    if (p_card->_suit == Clubs && p_card->_value == King) {
+    if (CardSuit(*p_card) == Clubs && CardValue(*p_card) == King) {
         draw(state, next_player, 5);
         result = PLAY_OPPONENT_SKIPS;
     }
     // check moumou
-    if (p_card->_value == state->_last_card._value) {
+    if (CardValue(*p_card) == CardValue(state->_last_card)) {
         ++state->_moumou_counter;
         if (state->_moumou_counter == SuitCount)
             result = PLAY_MOUMOU;
@@ -118,8 +118,8 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
         state->_moumou_counter = 1;
 
     state->_valid_moves._draw =
-        p_card->_value == Six || result == PLAY_OPPONENT_SKIPS;
-    state->_valid_moves._pass = p_card->_value != Six;
+        CardValue(*p_card) == Six || result == PLAY_OPPONENT_SKIPS;
+    state->_valid_moves._pass = CardValue(*p_card) != Six;
 
     state->_last_card = *p_card;
     state->_played._items[state->_played._count++] = *p_card;
@@ -146,8 +146,7 @@ void new_round(GameState *state) {
     state->_valid_moves._draw = true;
     state->_valid_moves._pass = false;
     state->_valid_moves._restrict_value = false;
-    state->_last_card._suit = Undefined;
-    state->_last_card._value = Undefined;
+    state->_last_card = UINT8_MAX;
     state->_moumou_counter = 0;
 
     // Init deck
@@ -157,8 +156,7 @@ void new_round(GameState *state) {
     uint8_t idx = 0;
     for (uint8_t s = 0; s < SuitCount; ++s) {
         for (uint8_t v = 0; v < ValueCount; ++v) {
-            state->_deck._items[idx]._value = v;
-            state->_deck._items[idx]._suit = s;
+            state->_deck._items[idx] = (s << 4) + v;
             ++idx;
         }
     }
@@ -183,9 +181,7 @@ void new_round(GameState *state) {
 }
 
 void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit) {
-    Card card;
-    card._value = value;
-    card._suit = suit;
+    Card card = (suit << 4) + value;
     Player *p = &state->_players[player_idx];
     p->_hand._items[p->_hand._count] = card;
     p->_hand._count++;
@@ -195,7 +191,7 @@ uint16_t hand_score(GameState *state, uint8_t player_idx) {
     uint16_t score = 0;
     Player *p = &state->_players[player_idx];
     for (uint8_t idx = 0; idx < p->_hand._count; ++idx) {
-        Value val = p->_hand._items[idx]._value;
+        Value val = CardValue(p->_hand._items[idx]);
         switch (val) {
         case Ten:
         case Queen:

@@ -55,13 +55,13 @@ void loop() {
             state->_demanded = Undefined;
             state->_valid_moves._restrict_value =
                 result != PLAY_OPPONENT_SKIPS &&
-                state->_last_card._value != Six;
+                CardValue(state->_last_card) != Six;
         }
     }
-    state->_valid_moves._pass = state->_last_card._value != Six;
+    state->_valid_moves._pass = CardValue(state->_last_card) != Six;
 
     if (card_idx == CMD_PASS) {
-        if (state->_played._count && state->_last_card._value == Jack) {
+        if (state->_played._count && CardValue(state->_last_card) == Jack) {
             state->_demanded = Undefined;
             state->_demanded = input_suit(state);
             printf("Player #%d demands %c\n", state->_cur_player,

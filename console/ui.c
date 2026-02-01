@@ -3,7 +3,7 @@
 #include <string.h>
 
 void render_card(Card *card) {
-    printf("%c%c ", VALUES[card->_value], SUITS[card->_suit]);
+    printf("%c%c ", VALUES[CardValue(*card)], SUITS[CardSuit(*card)]);
 }
 
 void render_player(GameState *state, uint8_t idx) {

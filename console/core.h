@@ -31,10 +31,16 @@ typedef enum : uint8_t {
 static const char SUITS[] = "shdc";
 static const char VALUES[] = "6789TJQKA";
 
-typedef struct {
-    Value _value;
-    Suit _suit;
-} Card;
+typedef uint8_t Card;
+static inline uint8_t CardValue(Card card) {
+    return card & 0b1111;
+}
+static inline uint8_t CardSuit(Card card) {
+    return (card >> 4) & 0b11;
+}
+static inline uint8_t CardFlags(Card card) {
+    return card >> 6;
+}
 
 typedef struct {
     uint8_t _count;
