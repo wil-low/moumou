@@ -9,7 +9,7 @@ enum Suit {
     diamond
 };
 enum Value {
-    ace = 1,
+    undef = 1,
     two,
     three,
     four,
@@ -21,12 +21,13 @@ enum Value {
     ten,
     jack,
     queen,
-    king
+    king,
+    ace
 };
 
 class Card {
   public:
-    Card() : Card(ace, spade, false) {
+    Card() : Card(undef, spade, false) {
     }
     Card(Value value, Suit suit, bool faceDown);
     bool isFaceDown() const;

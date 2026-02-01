@@ -5,7 +5,10 @@
 #include <SPI.h>
 
 #define MAX_CARDS_DRAWN_IN_PILE 10
-#define EEPROM_MAGIC_NUMBER 170
+#define EEPROM_MAGIC_NUMBER 171
+
+#define PSEUDO_GRAY GRAY
+// #define PSEUDO_GRAY BLACK
 
 Gamebuino gb;
 
@@ -27,18 +30,9 @@ GameMode mode = selecting;
 // Tableau: alternating colors, descending order
 enum Location {
     stock,
-    talon,
-    foundation1,
-    foundation2,
-    foundation3,
-    foundation4,
-    tableau1,
-    tableau2,
-    tableau3,
-    tableau4,
-    tableau5,
-    tableau6,
-    tableau7
+    table,
+    played,
+    human
 };
 // Stack that the cursor is currently pointed at.
 Location activeLocation;
@@ -47,29 +41,28 @@ byte cardIndex;
 // Position of the cursor for animation.
 byte cursorX, cursorY;
 
-// Animating moving stack of cards.
-Pile moving = Pile(13);
-byte remainingDraws;
-// 3 at a time for hard, 1 at a time for easy
-byte cardsToDraw;
+// AI level
+byte botLevel;
 
 // Keep track of source pile for returning invalid moves.
 Pile *sourcePile;
 
-Pile stockDeck = Pile(52), talonDeck = Pile(24);
-Pile foundations[4] = {Pile(13), Pile(13), Pile(13), Pile(13)};
-Pile tableau[7] = {Pile(20), Pile(20), Pile(20), Pile(20),
-                   Pile(20), Pile(20), Pile(20)};
+Pile stockDeck(36, 1);
+Pile tableRow(36, 4);
+Pile playedRow(10, 6);
+Pile playerDeck[2] = {Pile(30, 7), Pile(30, 1)};
+uint16_t playerScore[2];
 
 UndoStack undo;
 
 struct CardAnimation {
     Card card;
-    byte tableauIndex, x, y, destX, destY;
+    byte x, y, destX, destY;
+    Pile *destination;
 };
 
 // Used to deal at the start of the game.
-CardAnimation cardAnimations[28];
+CardAnimation cardAnimations[10];
 byte cardAnimationCount = 0;
 
 struct CardBounce {
@@ -83,8 +76,8 @@ byte bounceIndex;
 
 int easyGameCount, easyGamesWon, hardGameCount, hardGamesWon;
 
-const char easyOption[] PROGMEM = "New easy game";
-const char hardOption[] PROGMEM = "New hard game";
+const char easyOption[] PROGMEM = "Bot level 1";
+const char hardOption[] PROGMEM = "Bot level 2";
 const char statisticsOption[] PROGMEM = "Game statistics";
 const char *const newGameMenu[3] PROGMEM = {easyOption, hardOption,
                                             statisticsOption};
@@ -130,22 +123,22 @@ void setup() {
     gb.begin();
 
     // Initialize positions of piles.
-    for (int i = 0; i < 4; i++) {
-        foundations[i].x = 37 + i * 12;
-        foundations[i].y = 0;
-        foundations[i].isTableau = false;
-    }
-    for (int i = 0; i < 7; i++) {
-        tableau[i].x = i * 12 + 1;
-        tableau[i].y = 16;
-        tableau[i].isTableau = true;
-    }
     stockDeck.x = 1;
     stockDeck.y = 0;
-    stockDeck.isTableau = false;
-    talonDeck.x = 13;
-    talonDeck.y = 0;
-    stockDeck.isTableau = false;
+
+    tableRow.x = 16;
+    tableRow.y = 0;
+
+    playedRow.x = 2;
+    playedRow.y = 17;
+
+    playerDeck[0].x = 4;
+    playerDeck[0].y = 33;
+    playerScore[0] = 0;
+
+    playerDeck[1].x = 73;
+    playerDeck[1].y = 0;
+    playerScore[1] = 0;
 
     showTitle();
 }
@@ -203,7 +196,8 @@ void showTitle() {
 start:
     gb.display.persistence = true;
     gb.titleScreen(F(""), title);
-    gb.pickRandomSeed();
+    randomSeed(45);
+    // gb.pickRandomSeed();
     gb.battery.show = false;
     setupNewGame();
     readEeprom();
@@ -224,11 +218,11 @@ askAgain:
         goto start;
 
     if (menuOption == 0) {
-        cardsToDraw = 1;
+        botLevel = 1;
         easyGameCount++;
         writeEeprom(false);
     } else if (menuOption == 1) {
-        cardsToDraw = 3;
+        botLevel = 2;
         hardGameCount++;
         writeEeprom(false);
     } else {
@@ -272,29 +266,29 @@ void setupNewGame() {
     cursorX = 11;
     cursorY = 4;
 
-    talonDeck.empty();
     stockDeck.newDeck();
     stockDeck.shuffle();
-    for (int i = 0; i < 4; i++) {
-        foundations[i].empty();
-    }
-    for (int i = 0; i < 7; i++) {
-        tableau[i].empty();
-    }
+
+    playerDeck[0].empty();
+    playerDeck[1].empty();
+
+    playedRow.empty();
+    tableRow.empty();
 
     // Initialize the data structure to deal out the initial board.
     cardAnimationCount = 0;
-    for (int i = 0; i < 7; i++) {
-        for (int j = i; j < 7; j++) {
+    for (int i = 0; i < 5; i++) {
+        for (int p = 0; p < 2; p++) {
             Card card = stockDeck.removeTopCard();
-            if (i == j)
+            if (p == 0)
                 card.flip();
             cardAnimations[cardAnimationCount] = CardAnimation();
             cardAnimations[cardAnimationCount].x = 1;
             cardAnimations[cardAnimationCount].y = 0;
-            cardAnimations[cardAnimationCount].destX = tableau[j].x;
-            cardAnimations[cardAnimationCount].destY = tableau[j].y + 2 * i;
-            cardAnimations[cardAnimationCount].tableauIndex = j;
+            cardAnimations[cardAnimationCount].destX =
+                playerDeck[p].x + (p == 0 ? i * 11 : 0);
+            cardAnimations[cardAnimationCount].destY = playerDeck[p].y;
+            cardAnimations[cardAnimationCount].destination = &playerDeck[p];
             cardAnimations[cardAnimationCount].card = card;
             cardAnimationCount++;
         }
@@ -302,24 +296,13 @@ void setupNewGame() {
     cardAnimationCount = 0;
 
     mode = dealing;
-
-    // For debugging winning animation
-    /*
-    stockDeck.empty();
-    for (int suit = spade; suit <= diamond; suit++) {
-      for (int value = ace; value <= king; value++) {
-        foundations[suit].addCard(Card(static_cast<Value>(value),
-    static_cast<Suit>(suit), false));
-      }
-    }
-    mode = wonGame;
-    */
 }
 
 const uint16_t patternA[] PROGMEM = {0x0045, 0x0118, 0x0000};
 const uint16_t patternB[] PROGMEM = {0x0045, 0x0108, 0x0000};
 
 void handleSelectingButtons() {
+    /*
     // Handle buttons when user is using the arrow cursor to navigate.
     Location originalLocation = activeLocation;
     if (gb.buttons.pressed(BTN_RIGHT)) {
@@ -437,9 +420,11 @@ void handleSelectingButtons() {
     }
     if (originalLocation != activeLocation)
         cardIndex = 0;
+        */
 }
 
 void handleMovingPileButtons() {
+    /*
     // Handle buttons when user is moving a pile of cards.
     if (gb.buttons.pressed(BTN_RIGHT)) {
         if (activeLocation != foundation4 && activeLocation != tableau7) {
@@ -525,9 +510,11 @@ void handleMovingPileButtons() {
             break;
         }
     }
+        */
 }
 
 void moveCards() {
+    /*
     Pile *pile = getActiveLocationPile();
     UndoAction action;
     action.source = sourcePile;
@@ -539,6 +526,7 @@ void moveCards() {
         action.setRevealed();
     }
     undo.pushAction(action);
+    */
 }
 
 bool updateAfterPlay() {
@@ -552,6 +540,7 @@ bool updateAfterPlay() {
 
 bool revealCards() {
     bool revealed = false;
+    /*
     // Check for cards to reveal.
     for (int i = 0; i < 7; i++) {
         if (tableau[i].getCardCount() == 0)
@@ -563,10 +552,12 @@ bool revealCards() {
         }
         tableau[i].addCard(card);
     }
+        */
     return revealed;
 }
 
 void checkWonGame() {
+    /*
     // Check to see if all foundations are full
     if (foundations[0].getCardCount() == 13 &&
         foundations[1].getCardCount() == 13 &&
@@ -581,35 +572,73 @@ void checkWonGame() {
             writeEeprom(false);
         }
     }
+        */
+}
+
+void drawDeck(Pile *deck) {
+    for (int i = 0; i < min(deck->getMaxVisibleCards(), deck->getCardCount());
+         i++) {
+        drawCard(
+            deck->x + i * 11, deck->y,
+            deck->getCard(
+                min(deck->getMaxVisibleCards(), deck->getCardCount()) - i - 1));
+    }
+}
+
+void drawNumberRight(uint16_t n, byte x, byte y) {
+    byte cur_x = x - 3;
+    if (n == 0) {
+        gb.display.drawChar(cur_x, y, '0', 1);
+        return;
+    }
+    while (n > 0) {
+        gb.display.drawChar(cur_x, y, (n % 10) + '0', 1);
+        n = n / 10;
+        cur_x -= 4;
+    }
 }
 
 void drawBoard() {
     // Stock
     if (stockDeck.getCardCount() != 0) {
-        drawCard(stockDeck.x, stockDeck.y, Card(ace, spade, true));
+        drawCard(stockDeck.x, stockDeck.y, Card(undef, spade, true));
     }
 
-    // Talon
-    for (int i = 0; i < min(3, talonDeck.getCardCount()); i++) {
-        drawCard(talonDeck.x + i * 2, talonDeck.y,
-                 talonDeck.getCard(min(3, talonDeck.getCardCount()) - i - 1));
+    // Scores
+    drawNumberRight(playerScore[1], 83, 17);
+    drawNumberRight(playerScore[1], 83, 25);
+
+    // Bot deck
+    if (playerDeck[1].getCardCount() != 0) {
+        drawCard(playerDeck[1].x, playerDeck[1].y, Card(undef, spade, true));
+        gb.display.setColor(WHITE);
+        drawNumberRight(playerDeck[1].getCardCount(), 81, 2);
     }
 
-    // Foundations
-    for (int i = 0; i < 4; i++) {
-        if (foundations[i].getCardCount() != 0) {
-            drawCard(foundations[i].x, foundations[i].y,
-                     foundations[i].getCard(0));
-        } else {
-            gb.display.setColor(GRAY);
-            gb.display.drawRect(foundations[i].x, foundations[i].y, 10, 14);
+    // Human deck
+    drawDeck(&playerDeck[0]);
+
+    /*
+        // Talon
+        for (int i = 0; i < min(3, talonDeck.getCardCount()); i++) {
+            drawCard(talonDeck.x + i * 2, talonDeck.y,
+                     talonDeck.getCard(min(3, talonDeck.getCardCount())
+       - i
+       - 1));
         }
-    }
 
-    // Tableau
-    for (int i = 0; i < 7; i++) {
-        drawPile(&tableau[i]);
-    }
+        // Foundations
+        for (int i = 0; i < 4; i++) {
+            if (foundations[i].getCardCount() != 0) {
+                drawCard(foundations[i].x, foundations[i].y,
+                         foundations[i].getCard(0));
+            } else {
+                gb.display.setColor(PSEUDO_GRAY);
+                gb.display.drawRect(foundations[i].x, foundations[i].y,
+       10, 14);
+            }
+        }
+    */
 }
 
 void drawPile(Pile *pile) {
@@ -622,14 +651,14 @@ void drawPile(Pile *pile) {
 }
 
 byte cardYPosition(Pile *pile, byte cardIndex) {
-    if (pile->isTableau) {
+    /*if (pile->isTableau) {
         if (cardIndex > MAX_CARDS_DRAWN_IN_PILE - 1)
             return pile->y;
         return pile->y +
                2 * (min(pile->getCardCount(), MAX_CARDS_DRAWN_IN_PILE) -
                     cardIndex - 1);
     }
-
+*/
     return pile->y;
 }
 
@@ -637,7 +666,7 @@ void drawCard(byte x, byte y, Card card) {
     // Fill
     byte fill = WHITE;
     if (card.isFaceDown())
-        fill = GRAY;
+        fill = PSEUDO_GRAY;
     gb.display.setColor(fill);
     gb.display.fillRect(x + 1, y + 1, 8, 12);
 
@@ -654,6 +683,7 @@ void drawCard(byte x, byte y, Card card) {
     if (card.isRed())
         gb.display.setColor(GRAY);
     drawSuit(x + 2, y + 2, card.getSuit());
+    gb.display.setColor(BLACK);
     drawValue(x + 5, y + 7, card.getValue());
 }
 
@@ -861,43 +891,43 @@ void getCursorDestination(byte &x, byte &y, bool &flipped) {
         y = pile->y + 4;
         flipped = false;
         break;
-    case talon:
-        x = pile->x + 10 + 2 * min(2, max(0, pile->getCardCount() - 1));
-        y = pile->y + 4;
-        flipped = false;
-        break;
-    case foundation1:
-    case foundation2:
-    case foundation3:
-    case foundation4:
-        x = pile->x - 7;
-        y = pile->y + 4;
-        flipped = true;
-        break;
-    case tableau1:
-    case tableau2:
-    case tableau3:
-        x = pile->x + 10;
-        y = (cardIndex == 0 ? 4 : -2) + cardYPosition(pile, cardIndex);
-        flipped = false;
-        break;
-    case tableau4:
-    case tableau5:
-    case tableau6:
-    case tableau7:
-        x = pile->x - 7;
-        y = (cardIndex == 0 ? 4 : -2) + cardYPosition(pile, cardIndex);
-        flipped = true;
-        break;
+        /*case talon:
+            x = pile->x + 10 + 2 * min(2, max(0, pile->getCardCount() - 1));
+            y = pile->y + 4;
+            flipped = false;
+            break;
+        case foundation1:
+        case foundation2:
+        case foundation3:
+        case foundation4:
+            x = pile->x - 7;
+            y = pile->y + 4;
+            flipped = true;
+            break;
+        case tableau1:
+        case tableau2:
+        case tableau3:
+            x = pile->x + 10;
+            y = (cardIndex == 0 ? 4 : -2) + cardYPosition(pile, cardIndex);
+            flipped = false;
+            break;
+        case tableau4:
+        case tableau5:
+        case tableau6:
+        case tableau7:
+            x = pile->x - 7;
+            y = (cardIndex == 0 ? 4 : -2) + cardYPosition(pile, cardIndex);
+            flipped = true;
+            break;*/
     }
 }
 
 void drawDealing() {
-    if (cardAnimationCount < 28 && gb.frameCount % 4 == 0) {
+    if (cardAnimationCount < 10 && gb.frameCount % 4 == 0) {
         cardAnimationCount++;
         playSoundA();
     }
-    bool doneDealing = cardAnimationCount == 28;
+    bool doneDealing = cardAnimationCount == 10;
     for (int i = 0; i < cardAnimationCount; i++) {
         if (cardAnimations[i].x != cardAnimations[i].destX ||
             cardAnimations[i].y != cardAnimations[i].destY) {
@@ -910,8 +940,7 @@ void drawDealing() {
                 updatePosition(cardAnimations[i].y, cardAnimations[i].destY);
             if (cardAnimations[i].x == cardAnimations[i].destX &&
                 cardAnimations[i].y == cardAnimations[i].destY) {
-                tableau[cardAnimations[i].tableauIndex].addCard(
-                    cardAnimations[i].card);
+                cardAnimations[i].destination->addCard(cardAnimations[i].card);
             }
         }
     }
@@ -920,6 +949,7 @@ void drawDealing() {
 }
 
 void drawDrawingCards() {
+    /*
     drawPile(&moving);
     moving.x = updatePosition(moving.x, 17);
     moving.y = updatePosition(moving.y, 0);
@@ -939,9 +969,11 @@ void drawDrawingCards() {
             mode = selecting;
         }
     }
+        */
 }
 
 void drawMovingPile() {
+    /*
     drawPile(&moving);
     Pile *pile = getActiveLocationPile();
     byte yDelta = 2;
@@ -949,9 +981,11 @@ void drawMovingPile() {
         yDelta += 2 * pile->getCardCount();
     moving.x = updatePosition(moving.x, pile->x);
     moving.y = updatePosition(moving.y, pile->y + yDelta);
+    */
 }
 
 void drawIllegalMove() {
+    /*
     // Move the cards back to the source pile.
     byte yDelta = 0;
     if (sourcePile->isTableau)
@@ -960,9 +994,8 @@ void drawIllegalMove() {
     moving.y = updatePosition(moving.y, sourcePile->y + yDelta);
     drawPile(&moving);
     // Check to see if the animation is done
-    if (moving.x == sourcePile->x && moving.y == sourcePile->y + yDelta) {
-        sourcePile->addPile(&moving);
-        bool revealed = updateAfterPlay();
+    if (moving.x == sourcePile->x && moving.y == sourcePile->y + yDelta)
+    { sourcePile->addPile(&moving); bool revealed = updateAfterPlay();
 
         // Update undo stack if this was a fast move to the foundation.
         if (mode == fastFoundation) {
@@ -977,6 +1010,7 @@ void drawIllegalMove() {
         if (mode != wonGame)
             mode = selecting;
     }
+            */
 }
 
 void drawWonGame() {
@@ -991,8 +1025,8 @@ void drawWonGame() {
     bounce.yVelocity += 0x0080;
     bounce.x += bounce.xVelocity;
     bounce.y += bounce.yVelocity;
-    // If the card is at the bottom of the screen, reverse the y velocity and
-    // scale by 80%.
+    // If the card is at the bottom of the screen, reverse the y
+    // velocity and scale by 80%.
     if (bounce.y + (14 << 8) > LCDHEIGHT << 8) {
         bounce.y = (LCDHEIGHT - 14) << 8;
         bounce.yVelocity = bounce.yVelocity * -4 / 5;
@@ -1007,6 +1041,7 @@ void drawWonGame() {
 }
 
 bool initializeCardBounce() {
+    /*
     // Return false if all the cards are done.
     if (foundations[bounceIndex].getCardCount() == 0)
         return false;
@@ -1017,6 +1052,7 @@ bool initializeCardBounce() {
     bounce.xVelocity = (random(2) ? 1 : -1) * random(0x0100, 0x0200);
     bounce.yVelocity = -1 * random(0x0200);
     bounceIndex = (bounceIndex + 1) % 4;
+    */
     return true;
 }
 
@@ -1024,21 +1060,21 @@ Pile *getActiveLocationPile() {
     switch (activeLocation) {
     case stock:
         return &stockDeck;
-    case talon:
-        return &talonDeck;
-    case foundation1:
-    case foundation2:
-    case foundation3:
-    case foundation4:
-        return &foundations[activeLocation - foundation1];
-    case tableau1:
-    case tableau2:
-    case tableau3:
-    case tableau4:
-    case tableau5:
-    case tableau6:
-    case tableau7:
-        return &tableau[activeLocation - tableau1];
+        /*case talon:
+            return &talonDeck;
+        case foundation1:
+        case foundation2:
+        case foundation3:
+        case foundation4:
+            return &foundations[activeLocation - foundation1];
+        case tableau1:
+        case tableau2:
+        case tableau3:
+        case tableau4:
+        case tableau5:
+        case tableau6:
+        case tableau7:
+            return &tableau[activeLocation - tableau1];*/
     }
 }
 
@@ -1077,7 +1113,7 @@ void drawCursor(byte x, byte y, bool flipped) {
             gb.display.setColor(WHITE);
             gb.display.drawPixel(x, y + 3);
             gb.display.fillRect(x - 11 - extraWidth, y, 11 + extraWidth, 7);
-            gb.display.setColor(card.isRed() ? GRAY : BLACK);
+            gb.display.setColor(card.isRed() ? PSEUDO_GRAY : BLACK);
             drawValue(x - 10, y + 1, card.getValue());
             drawSuit(x - 6, y + 1, card.getSuit());
         }
@@ -1105,7 +1141,7 @@ void drawCursor(byte x, byte y, bool flipped) {
             gb.display.setColor(WHITE);
             gb.display.drawPixel(x + 6, y + 3);
             gb.display.fillRect(x + 7, y, 11 + extraWidth, 7);
-            gb.display.setColor(card.isRed() ? GRAY : BLACK);
+            gb.display.setColor(card.isRed() ? PSEUDO_GRAY : BLACK);
             drawValue(x + 8 + extraWidth, y + 1, card.getValue());
             drawSuit(x + 12 + extraWidth, y + 1, card.getSuit());
         }
@@ -1160,14 +1196,14 @@ void readEeprom() {
     // Check to see if saved game.
     if (EEPROM.read(9)) {
         continueGame = true;
-        EEPROM.get(10, cardsToDraw);
+        EEPROM.get(10, botLevel);
         int address = 11;
         address += loadPile(address, &stockDeck);
-        address += loadPile(address, &talonDeck);
+        /*address += loadPile(address, &talonDeck);
         for (int i = 0; i < 4; i++)
             address += loadPile(address, &foundations[i]);
         for (int i = 0; i < 7; i++)
-            address += loadPile(address, &tableau[i]);
+            address += loadPile(address, &tableau[i]);*/
     } else {
         continueGame = false;
     }
@@ -1182,14 +1218,14 @@ void writeEeprom(bool saveGame) {
 
     EEPROM.update(9, saveGame);
     if (saveGame) {
-        EEPROM.put(10, cardsToDraw);
+        EEPROM.put(10, botLevel);
         int address = 11;
         address += savePile(address, &stockDeck);
-        address += savePile(address, &talonDeck);
+        /*address += savePile(address, &talonDeck);
         for (int i = 0; i < 4; i++)
             address += savePile(address, &foundations[i]);
         for (int i = 0; i < 7; i++)
-            address += savePile(address, &tableau[i]);
+            address += savePile(address, &tableau[i]);*/
     }
 }
 
@@ -1243,6 +1279,7 @@ void drawAndFlip(Pile *source, Pile *destination) {
 }
 
 void performUndo() {
+    /*
     // Make sure there is something to undo.
     if (!undo.isEmpty() && mode == selecting) {
         UndoAction action = undo.popAction();
@@ -1265,9 +1302,15 @@ void performUndo() {
                 drawAndFlip(action.source, action.source);
             }
             moving.empty();
-            action.destination->removeCards(action.getCardCount(), &moving);
-            action.source->addPile(&moving);
+            action.destination->removeCards(action.getCardCount(),
+    &moving); action.source->addPile(&moving);
         }
         updateAfterPlay();
     }
+        */
+}
+
+void debug(unsigned char c) {
+    gb.display.drawChar(59, 0, ' ', 1);
+    gb.display.drawChar(59, 0, c, 1);
 }

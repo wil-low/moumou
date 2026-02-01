@@ -1,8 +1,9 @@
 #include "pile.h"
 
-Pile::Pile(byte maxCards) {
+Pile::Pile(byte maxCards, byte maxVisibleCards) {
     _count = 0;
     _maxCards = maxCards;
+    _maxVisibleCards = maxVisibleCards;
     _cards = new Card[_maxCards];
 }
 
@@ -61,7 +62,7 @@ void Pile::shuffle() {
 void Pile::newDeck() {
     empty();
     for (int suit = spade; suit <= diamond; suit++) {
-        for (int value = ace; value <= king; value++) {
+        for (int value = six; value <= ace; value++) {
             addCard(
                 Card(static_cast<Value>(value), static_cast<Suit>(suit), true));
         }
@@ -70,4 +71,8 @@ void Pile::newDeck() {
 
 byte Pile::getMaxCards() const {
     return _maxCards;
+}
+
+byte Pile::getMaxVisibleCards() const {
+    return _maxVisibleCards;
 }

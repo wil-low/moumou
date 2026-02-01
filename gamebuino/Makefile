@@ -19,6 +19,7 @@ clean:
 	rm -rf bin/MOUMOU.HEX build/*
 
 build/moumou.ino.hex: $(DEPS)
+	clear
 	mkdir -p build bin
 	arduino-cli compile \
 		--fqbn arduino:avr:uno \

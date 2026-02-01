@@ -5,7 +5,7 @@
 #define PILE_H
 class Pile {
   public:
-    Pile(byte maxCards);
+    Pile(byte maxCards, byte maxVisibleCards);
     ~Pile();
     void addCard(Card card);
     void addPile(Pile *pile);
@@ -17,12 +17,13 @@ class Pile {
     void shuffle();
     void newDeck();
     byte getMaxCards() const;
+    byte getMaxVisibleCards() const;
     byte x, y;
-    bool isTableau;
 
   private:
     Card *_cards;
     byte _maxCards;
+    byte _maxVisibleCards;
     byte _count;
 };
 #endif
