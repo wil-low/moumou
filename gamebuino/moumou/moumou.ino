@@ -16,7 +16,7 @@ Gamebuino gb;
 enum GameMode {
     initialDealing,
     selecting,
-    dealing,
+    moving,
     resolving,
     passing,
     gameOver
@@ -32,8 +32,8 @@ byte dealingCount;
 // Played: cards played by human
 // Human: cards in human hand
 enum Location {
-    stock,
     table,
+    stock,
     played,
     hand
 };
@@ -41,8 +41,6 @@ enum Location {
 Location activeLocation;
 // Within the human hand, card position on the screen, 0 being left card.
 byte cardIndex;
-// Within the human hand, card offset for the cursor, enables < and > marks
-byte handOffset;
 // Position of the cursor for animation.
 byte cursorX, cursorY;
 
@@ -169,18 +167,18 @@ void loop() {
         // Draw the board.
         if (mode != gameOver) {
             drawBoard();
+            drawNumberRight(cardAnimationCount, 83, 33);
+            drawNumberRight(dealingCount, 83, 41);
         }
 
         // Draw other things based on the current state of the game.
         switch (mode) {
         case initialDealing:
+        case moving:
             drawDealing();
             break;
         case selecting:
             drawCursor();
-            break;
-        case dealing:
-            drawDealing();
             break;
         case gameOver:
             drawWonGame();
@@ -269,7 +267,6 @@ void setupNewGame() {
     playerDeck[0].empty();
     playerDeck[1].empty();
     curPlayer = 0;
-    handOffset = 0;
 
     playedRow.empty();
     tableRow.empty();
@@ -278,23 +275,24 @@ void setupNewGame() {
     cardAnimationCount = 0;
     for (int i = 0; i < INITIAL_HAND; i++)
         for (int p = 0; p < 2; p++)
-            dealToPlayer(p, i);
+            animateMove(&stockDeck, 0, &playerDeck[p], i);
     dealingCount = cardAnimationCount;
     cardAnimationCount = 0;
     mode = initialDealing;
 }
 
-void dealToPlayer(byte playerIdx, byte cardIdx) {
-    Card card = stockDeck.removeTopCard();
-    if (playerIdx == 0)
+void animateMove(Pile *src, byte srcIdx, Pile *dst, byte dstIdx) {
+    Card card = src->removeCardAt(srcIdx);
+    if (src == &stockDeck && dst == &playerDeck[0])
         card.flip();
     cardAnimations[cardAnimationCount] = CardAnimation();
-    cardAnimations[cardAnimationCount].x = 1;
-    cardAnimations[cardAnimationCount].y = 0;
+    cardAnimations[cardAnimationCount].x =
+        src->x + (src->getMaxVisibleCards() > 1 ? srcIdx * 11 : 0);
+    cardAnimations[cardAnimationCount].y = src->y;
     cardAnimations[cardAnimationCount].destX =
-        playerDeck[playerIdx].x + (playerIdx == 0 ? cardIdx * 11 : 0);
-    cardAnimations[cardAnimationCount].destY = playerDeck[playerIdx].y;
-    cardAnimations[cardAnimationCount].destination = &playerDeck[playerIdx];
+        dst->x + (dst->getMaxVisibleCards() > 1 ? dstIdx * 11 : 0);
+    cardAnimations[cardAnimationCount].destY = dst->y;
+    cardAnimations[cardAnimationCount].destination = dst;
     cardAnimations[cardAnimationCount].card = card;
     cardAnimationCount++;
 }
@@ -306,25 +304,22 @@ void handleSelectingButtons() {
     // Handle buttons when user is using the arrow cursor to navigate.
     Location originalLocation = activeLocation;
     if (gb.buttons.pressed(BTN_RIGHT)) {
-        if (activeLocation == stock)
-            activeLocation = table;
-        else if (activeLocation == hand) {
-            if (cardIndex + handOffset < playerDeck[0].getCardCount() - 1) {
+        if (activeLocation == hand) {
+            if (cardIndex + playerDeck[0].cardOffset <
+                playerDeck[0].getCardCount() - 1) {
                 if (cardIndex < playerDeck[0].getMaxVisibleCards() - 1)
                     ++cardIndex;
                 else
-                    ++handOffset;
+                    ++playerDeck[0].cardOffset;
             }
         }
     }
     if (gb.buttons.pressed(BTN_LEFT)) {
-        if (activeLocation == table)
-            activeLocation = stock;
-        else if (activeLocation == hand) {
+        if (activeLocation == hand) {
             if (cardIndex > 0)
                 --cardIndex;
-            else if (handOffset > 0)
-                --handOffset;
+            else if (playerDeck[0].cardOffset > 0)
+                --playerDeck[0].cardOffset;
         }
     }
     if (gb.buttons.pressed(BTN_DOWN)) {
@@ -334,19 +329,18 @@ void handleSelectingButtons() {
             activeLocation = hand;
     }
     if (gb.buttons.pressed(BTN_UP)) {
-        if (activeLocation > table)
+        if (activeLocation > stock)
             activeLocation = activeLocation - 1;
     }
     if (gb.buttons.pressed(BTN_B)) {
         if (stockDeck.getCardCount() != 0) {
             // drawAndFlip(&stockDeck, &playerDeck[0]);
             cardAnimationCount = 0;
-            for (int i = 0; i < 1; i++)
-                dealToPlayer(1 - curPlayer,
-                             playerDeck[1 - curPlayer].getCardCount());
+            animateMove(&stockDeck, 0, &playerDeck[1],
+                        playerDeck[1].getCardCount());
             dealingCount = cardAnimationCount;
             cardAnimationCount = 0;
-            mode = dealing;
+            mode = moving;
             // playSoundA();
         }
         /*
@@ -389,10 +383,11 @@ void handleSelectingButtons() {
                 // drawAndFlip(&stockDeck, &playerDeck[0]);
                 cardAnimationCount = 0;
                 for (int i = 0; i < 1; i++)
-                    dealToPlayer(curPlayer, playerDeck[0].getCardCount());
+                    animateMove(&stockDeck, 0, &playerDeck[0],
+                                playerDeck[0].getCardCount());
                 dealingCount = cardAnimationCount;
                 cardAnimationCount = 0;
-                mode = dealing;
+                mode = moving;
                 // playSoundA();
             } else {
                 /*while (talonDeck.getCardCount() != 0) {
@@ -403,17 +398,24 @@ void handleSelectingButtons() {
                 undo.pushAction(action);*/
             }
             break;
-            /* case hand:
-                sourcePile = getActiveLocationPile();
-                if (sourcePile->getCardCount() == 0)
-                    break;
-                moving.empty();
-                moving.x = sourcePile->x;
-                moving.y = cardYPosition(sourcePile, 0);
-                sourcePile->removeCards(cardIndex + 1, &moving);
-                mode = movingPile;
-                playSoundA();
-                break;*/
+        case hand:
+            cardAnimationCount = 0;
+            animateMove(&playerDeck[0], cardIndex, &playedRow,
+                        playedRow.getCardCount());
+            dealingCount = cardAnimationCount;
+            cardAnimationCount = 0;
+            mode = moving;
+            break;
+        case played:
+            cardAnimationCount = 0;
+            byte count = playedRow.getCardCount();
+            for (int i = 0; i < count; i++)
+                animateMove(&playedRow, 0, &tableRow,
+                            tableRow.getCardCount() + i);
+            dealingCount = cardAnimationCount;
+            cardAnimationCount = 0;
+            mode = moving;
+            break;
         }
     }
     if (originalLocation != activeLocation)
@@ -571,22 +573,22 @@ void checkWonGame() {
 }
 /*
 void drawDeck(Pile *deck) {
-    for (int i = 0; i < min(deck->getMaxVisibleCards(), deck->getCardCount());
-         i++) {
-        drawCard(
-            deck->x + i * 11, deck->y,
+    for (int i = 0; i < min(deck->getMaxVisibleCards(),
+deck->getCardCount()); i++) { drawCard( deck->x + i * 11, deck->y,
             deck->getCard(
-                min(deck->getMaxVisibleCards(), deck->getCardCount()) - i - 1));
+                min(deck->getMaxVisibleCards(), deck->getCardCount()) - i -
+1));
     }
 }
 */
 
 void drawDeck(Pile *deck) {
     for (int i = 0; i < deck->getMaxVisibleCards(); ++i) {
-        if (i + handOffset >= deck->getCardCount())
+        if (i + deck->cardOffset >= deck->getCardCount())
             break;
-        drawCard(deck->x + i * 11, deck->y,
-                 deck->getCard(deck->getCardCount() - (i + handOffset) - 1));
+        drawCard(
+            deck->x + i * 11, deck->y,
+            deck->getCard(deck->getCardCount() - (i + deck->cardOffset) - 1));
     }
 }
 
@@ -610,7 +612,8 @@ void drawBoard() {
     }
 
     // Scores
-    drawNumberRight(playerScore[1], 83, 17);
+    drawNumberRight(playedRow.getCardCount(), 83, 17);
+    // drawNumberRight(playerScore[1], 83, 17);
     drawNumberRight(playerScore[0], 83, 25);
 
     // Bot deck
@@ -622,12 +625,14 @@ void drawBoard() {
 
     // Human deck
     drawDeck(&playerDeck[0]);
-    if (handOffset > 0)
+    if (playerDeck[0].cardOffset > 0)
         drawLeftArrow(0, 38);
-    if (playerDeck[0].getCardCount() - handOffset >
+    if (playerDeck[0].getCardCount() - playerDeck[0].cardOffset >
         playerDeck[0].getMaxVisibleCards())
         drawRightArrow(81, 38);
 
+    drawDeck(&playedRow);
+    drawDeck(&tableRow);
     /*
         // Talon
         for (int i = 0; i < min(3, talonDeck.getCardCount()); i++) {
@@ -1297,12 +1302,6 @@ void displayStatistics() {
     }
 }
 
-void drawAndFlip(Pile *source, Pile *destination) {
-    Card card = source->removeTopCard();
-    card.flip();
-    destination->addCard(card);
-}
-
 void performUndo() {
     /*
     // Make sure there is something to undo.
@@ -1336,6 +1335,5 @@ void performUndo() {
 }
 
 void debug(unsigned char c) {
-    gb.display.drawChar(59, 0, ' ', 1);
-    gb.display.drawChar(59, 0, c, 1);
+    gb.display.drawChar(35, 1, c, 1);
 }

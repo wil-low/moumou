@@ -5,6 +5,7 @@ Pile::Pile(byte maxCards, byte maxVisibleCards) {
     _maxCards = maxCards;
     _maxVisibleCards = maxVisibleCards;
     _cards = new Card[_maxCards];
+    cardOffset = 0;
 }
 
 Pile::~Pile() {
@@ -33,9 +34,14 @@ Card Pile::getCard(int indexFromTop) const {
     return Card();
 }
 
-Card Pile::removeTopCard() {
-    if (_count > 0)
-        return _cards[--_count];
+Card Pile::removeCardAt(byte idx) {
+    if (idx < _count) {
+        Card card = _cards[idx];
+        --_count;
+        for (byte i = idx; i < _count; i++)
+            _cards[i] = _cards[i + 1];
+        return card;
+    }
     return Card();
 }
 
@@ -48,6 +54,7 @@ void Pile::removeCards(int count, Pile *destination) {
 
 void Pile::empty() {
     _count = 0;
+    cardOffset = 0;
 }
 
 void Pile::shuffle() {

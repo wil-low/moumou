@@ -11,7 +11,7 @@ class Pile {
     void addPile(Pile *pile);
     byte getCardCount() const;
     Card getCard(int indexFromTop) const;
-    Card removeTopCard();
+    Card removeCardAt(byte idx);
     void removeCards(int count, Pile *destination);
     void empty();
     void shuffle();
@@ -19,6 +19,7 @@ class Pile {
     byte getMaxCards() const;
     byte getMaxVisibleCards() const;
     byte x, y;
+    byte cardOffset;
 
   private:
     Card *_cards;
