@@ -159,7 +159,6 @@ end
 function Game:dealToPlayer(idx, count)
     for i = 1, count do
         local card = self:deal()
-        card.faceUp = self.players[idx].hand.faceUp
         table.insert(self.players[idx].hand.items, card)
     end
     self.players[idx].hand:realign()
@@ -381,6 +380,7 @@ end
 function Game:over(message)
     self:movePlayedToTable()
     self.players[2].hand.faceUp = true  -- show bot's hand
+    self.players[2].hand:realign()
     self:updateScores();
     self.gameOverButton:setLabel("Game over!\nPlayer " .. self.curPlayer .. " " .. message, 'center')
     self:disableButtons()

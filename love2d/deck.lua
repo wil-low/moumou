@@ -45,6 +45,7 @@ end
 
 function Deck:realign()
     for i, card in ipairs(self.items) do
+        card.faceUp = self.faceUp
         if self.maxWidth ~= nil then
             card.x, card.y = self:cardCoords(i)
         else
