@@ -25,18 +25,18 @@ enum GameMode {
 GameMode mode = selecting;
 
 // Stock: where you draw cards from
-// Talon: drawn cards
-// Foundation: get the cards here in suit order to win
-// Tableau: alternating colors, descending order
+// Table: table cards
+// Played: cards played by human
+// Human: cards in human hand
 enum Location {
     stock,
     table,
     played,
-    human
+    hand
 };
 // Stack that the cursor is currently pointed at.
 Location activeLocation;
-// Within the stack, card position for the cursor, 0 being top card.
+// Within the human hand, card position for the cursor, 0 being left card.
 byte cardIndex;
 // Position of the cursor for animation.
 byte cursorX, cursorY;
@@ -302,59 +302,47 @@ const uint16_t patternA[] PROGMEM = {0x0045, 0x0118, 0x0000};
 const uint16_t patternB[] PROGMEM = {0x0045, 0x0108, 0x0000};
 
 void handleSelectingButtons() {
-    /*
     // Handle buttons when user is using the arrow cursor to navigate.
     Location originalLocation = activeLocation;
     if (gb.buttons.pressed(BTN_RIGHT)) {
-        if (activeLocation != foundation4 && activeLocation != tableau7) {
-            activeLocation = activeLocation + 1;
+        if (activeLocation == stock)
+            activeLocation = table;
+        else if (activeLocation == hand) {
+            if (cardIndex < playerDeck[0].getCardCount() - 1)
+                ++cardIndex;
         }
     }
     if (gb.buttons.pressed(BTN_LEFT)) {
-        if (activeLocation != stock && activeLocation != tableau1) {
-            activeLocation = activeLocation - 1;
+        if (activeLocation == table)
+            activeLocation = stock;
+        else if (activeLocation == hand) {
+            if (cardIndex > 0)
+                --cardIndex;
         }
     }
     if (gb.buttons.pressed(BTN_DOWN)) {
-        if (cardIndex > 0) {
-            cardIndex--;
-        } else {
-            if (activeLocation < foundation1)
-                activeLocation = activeLocation + 6;
-            else if (activeLocation <= foundation4)
-                activeLocation = activeLocation + 7;
-        }
+        if (activeLocation < played)
+            activeLocation = played;
+        else if (activeLocation = played)
+            activeLocation = hand;
     }
     if (gb.buttons.pressed(BTN_UP)) {
-        bool interPileNavigation = false;
-        if (activeLocation >= tableau1 && activeLocation <= tableau7) {
-            Pile *pile = getActiveLocationPile();
-            if (pile->getCardCount() > cardIndex + 1 &&
-                !pile->getCard(cardIndex + 1).isFaceDown()) {
-                cardIndex++;
-                interPileNavigation = true;
-            }
-        }
-        if (!interPileNavigation) {
-            if (activeLocation > tableau2)
-                activeLocation = activeLocation - 7;
-            else if (activeLocation >= tableau1)
-                activeLocation = activeLocation - 6;
-        }
+        if (activeLocation > table)
+            activeLocation = activeLocation - 1;
     }
-    if (gb.buttons.pressed(BTN_B)) {
+    /*if (gb.buttons.pressed(BTN_B)) {
         if (activeLocation >= tableau1 || activeLocation == talon) {
             Pile *pile = getActiveLocationPile();
             if (pile->getCardCount() > 0) {
                 Card card = pile->getCard(0);
                 bool foundMatch = false;
                 for (int i = 0; i < 4; i++) {
-                    if (foundations[i].getCardCount() == 0) {
+                    if (hands[i].getCardCount() == 0) {
                         if (card.getValue() == ace) {
                             foundMatch = true;
                         }
                     } else {
-                        Card card1 = foundations[i].getCard(0);
+                        Card card1 = hands[i].getCard(0);
                         Card card2 = pile->getCard(0);
                         if (card1.getSuit() == card2.getSuit() &&
                             card1.getValue() + 1 == card2.getValue()) {
@@ -366,7 +354,7 @@ void handleSelectingButtons() {
                         moving.x = pile->x;
                         moving.y = cardYPosition(pile, 0);
                         moving.addCard(pile->removeTopCard());
-                        sourcePile = &foundations[i];
+                        sourcePile = &hands[i];
                         mode = fastFoundation;
                         playSoundA();
                         break;
@@ -395,10 +383,10 @@ void handleSelectingButtons() {
             }
             break;
         case talon:
-        case foundation1:
-        case foundation2:
-        case foundation3:
-        case foundation4:
+        case hand1:
+        case hand2:
+        case hand3:
+        case hand4:
         case tableau1:
         case tableau2:
         case tableau3:
@@ -420,14 +408,14 @@ void handleSelectingButtons() {
     }
     if (originalLocation != activeLocation)
         cardIndex = 0;
-        */
+    */
 }
 
 void handleMovingPileButtons() {
     /*
     // Handle buttons when user is moving a pile of cards.
     if (gb.buttons.pressed(BTN_RIGHT)) {
-        if (activeLocation != foundation4 && activeLocation != tableau7) {
+        if (activeLocation != hand4 && activeLocation != tableau7) {
             activeLocation = activeLocation + 1;
         }
     }
@@ -439,7 +427,7 @@ void handleMovingPileButtons() {
     if (gb.buttons.pressed(BTN_DOWN)) {
         if (activeLocation == talon)
             activeLocation = tableau2;
-        else if (activeLocation <= foundation4)
+        else if (activeLocation <= hand4)
             activeLocation = activeLocation + 7;
     }
     if (gb.buttons.pressed(BTN_UP)) {
@@ -454,10 +442,10 @@ void handleMovingPileButtons() {
         case talon:
             mode = illegalMove;
             break;
-        case foundation1:
-        case foundation2:
-        case foundation3:
-        case foundation4: {
+        case hand1:
+        case hand2:
+        case hand3:
+        case hand4: {
             if (moving.getCardCount() != 1) {
                 mode = illegalMove;
                 break;
@@ -558,11 +546,11 @@ bool revealCards() {
 
 void checkWonGame() {
     /*
-    // Check to see if all foundations are full
-    if (foundations[0].getCardCount() == 13 &&
-        foundations[1].getCardCount() == 13 &&
-        foundations[2].getCardCount() == 13 &&
-        foundations[3].getCardCount() == 13) {
+    // Check to see if all hands are full
+    if (hands[0].getCardCount() == 13 &&
+        hands[1].getCardCount() == 13 &&
+        hands[2].getCardCount() == 13 &&
+        hands[3].getCardCount() == 13) {
         mode = wonGame;
         if (cardsToDraw == 1) {
             easyGamesWon++;
@@ -629,12 +617,12 @@ void drawBoard() {
 
         // Foundations
         for (int i = 0; i < 4; i++) {
-            if (foundations[i].getCardCount() != 0) {
-                drawCard(foundations[i].x, foundations[i].y,
-                         foundations[i].getCard(0));
+            if (hands[i].getCardCount() != 0) {
+                drawCard(hands[i].x, hands[i].y,
+                         hands[i].getCard(0));
             } else {
                 gb.display.setColor(PSEUDO_GRAY);
-                gb.display.drawRect(foundations[i].x, foundations[i].y,
+                gb.display.drawRect(hands[i].x, hands[i].y,
        10, 14);
             }
         }
@@ -891,15 +879,35 @@ void getCursorDestination(byte &x, byte &y, bool &flipped) {
         y = pile->y + 4;
         flipped = false;
         break;
+    case table:
+        x = pile->x + 4 * 11;
+        y = pile->y + 4;
+        flipped = false;
+        break;
+    case played:
+        x = pile->x - 2;
+        y = pile->y + 4;
+        flipped = true;
+        break;
+    case hand:
+        if (cardIndex > 3) {
+            x = pile->x - 7 + cardIndex * 11;
+            flipped = true;
+        } else {
+            x = pile->x + 10 + cardIndex * 11;
+            flipped = false;
+        }
+        y = pile->y + 4;
+        break;
         /*case talon:
             x = pile->x + 10 + 2 * min(2, max(0, pile->getCardCount() - 1));
             y = pile->y + 4;
             flipped = false;
             break;
-        case foundation1:
-        case foundation2:
-        case foundation3:
-        case foundation4:
+        case hand1:
+        case hand2:
+        case hand3:
+        case hand4:
             x = pile->x - 7;
             y = pile->y + 4;
             flipped = true;
@@ -997,7 +1005,7 @@ void drawIllegalMove() {
     if (moving.x == sourcePile->x && moving.y == sourcePile->y + yDelta)
     { sourcePile->addPile(&moving); bool revealed = updateAfterPlay();
 
-        // Update undo stack if this was a fast move to the foundation.
+        // Update undo stack if this was a fast move to the hand.
         if (mode == fastFoundation) {
             UndoAction action;
             action.source = getActiveLocationPile();
@@ -1014,7 +1022,7 @@ void drawIllegalMove() {
 }
 
 void drawWonGame() {
-    // Bounce the cards from the foundations, one at a time.
+    // Bounce the cards from the hands, one at a time.
     if (!gb.display.persistence) {
         gb.display.persistence = true;
         drawBoard();
@@ -1043,12 +1051,12 @@ void drawWonGame() {
 bool initializeCardBounce() {
     /*
     // Return false if all the cards are done.
-    if (foundations[bounceIndex].getCardCount() == 0)
+    if (hands[bounceIndex].getCardCount() == 0)
         return false;
     // Pick the next card to animate, with a random initial velocity.
-    bounce.card = foundations[bounceIndex].removeTopCard();
-    bounce.x = foundations[bounceIndex].x << 8;
-    bounce.y = foundations[bounceIndex].y << 8;
+    bounce.card = hands[bounceIndex].removeTopCard();
+    bounce.x = hands[bounceIndex].x << 8;
+    bounce.y = hands[bounceIndex].y << 8;
     bounce.xVelocity = (random(2) ? 1 : -1) * random(0x0100, 0x0200);
     bounce.yVelocity = -1 * random(0x0200);
     bounceIndex = (bounceIndex + 1) % 4;
@@ -1060,21 +1068,12 @@ Pile *getActiveLocationPile() {
     switch (activeLocation) {
     case stock:
         return &stockDeck;
-        /*case talon:
-            return &talonDeck;
-        case foundation1:
-        case foundation2:
-        case foundation3:
-        case foundation4:
-            return &foundations[activeLocation - foundation1];
-        case tableau1:
-        case tableau2:
-        case tableau3:
-        case tableau4:
-        case tableau5:
-        case tableau6:
-        case tableau7:
-            return &tableau[activeLocation - tableau1];*/
+    case table:
+        return &tableRow;
+    case hand:
+        return &playerDeck[0];
+    case played:
+        return &playedRow;
     }
 }
 
@@ -1105,7 +1104,7 @@ void drawCursor(byte x, byte y, bool flipped) {
         gb.display.drawPixel(x, y + 3);
         gb.display.setColor(WHITE);
         gb.display.drawFastHLine(x + 1, y + 3, 2);
-        if (cardIndex != 0) {
+        if (false /*cardIndex != 0*/) {
             Card card = getActiveLocationPile()->getCard(cardIndex);
             byte extraWidth = card.getValue() == ten ? 2 : 0;
             gb.display.setColor(BLACK);
@@ -1133,7 +1132,7 @@ void drawCursor(byte x, byte y, bool flipped) {
         gb.display.drawPixel(x + 6, y + 3);
         gb.display.setColor(WHITE);
         gb.display.drawFastHLine(x + 4, y + 3, 2);
-        if (cardIndex != 0) {
+        if (false /*cardIndex != 0*/) {
             Card card = getActiveLocationPile()->getCard(cardIndex);
             byte extraWidth = card.getValue() == ten ? 2 : 0;
             gb.display.setColor(BLACK);
@@ -1201,7 +1200,7 @@ void readEeprom() {
         address += loadPile(address, &stockDeck);
         /*address += loadPile(address, &talonDeck);
         for (int i = 0; i < 4; i++)
-            address += loadPile(address, &foundations[i]);
+            address += loadPile(address, &hands[i]);
         for (int i = 0; i < 7; i++)
             address += loadPile(address, &tableau[i]);*/
     } else {
@@ -1223,7 +1222,7 @@ void writeEeprom(bool saveGame) {
         address += savePile(address, &stockDeck);
         /*address += savePile(address, &talonDeck);
         for (int i = 0; i < 4; i++)
-            address += savePile(address, &foundations[i]);
+            address += savePile(address, &hands[i]);
         for (int i = 0; i < 7; i++)
             address += savePile(address, &tableau[i]);*/
     }
