@@ -27,6 +27,18 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "gbsim",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/willow/program/gbsim/build/gbsim",
+            "args": [
+                "moumou.ino.elf"
+            ],
+            "cwd": "${workspaceFolder}/gamebuino/build",
+            "environment": [],
+            "externalConsole": false
         }
     ]
 }
