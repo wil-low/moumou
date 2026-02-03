@@ -34,7 +34,7 @@ class Card {
     Value getValue() const;
     Suit getSuit() const;
     bool isRed() const;
-    void flip();
+    void setFace(bool up);
 
   private:
     byte _value;

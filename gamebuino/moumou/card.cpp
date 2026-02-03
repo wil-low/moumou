@@ -23,8 +23,8 @@ bool Card::isRed() const {
     return getSuit() == heart || getSuit() == diamond;
 }
 
-void Card::flip() {
-    if (isFaceDown())
+void Card::setFace(bool up) {
+    if (up)
         _value = _value & 0x7f;
     else
         _value = _value | 0x80;

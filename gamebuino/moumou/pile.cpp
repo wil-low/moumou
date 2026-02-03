@@ -1,11 +1,13 @@
 #include "pile.h"
 
-Pile::Pile(byte maxCards, byte maxVisibleCards) {
-    _count = 0;
+Pile::Pile(byte maxCards, byte maxVisible) {
+    cardCount = 0;
     _maxCards = maxCards;
-    _maxVisibleCards = maxVisibleCards;
+    maxVisibleCards = maxVisible;
     _cards = new Card[_maxCards];
-    cardOffset = 0;
+    scrollOffset = 0;
+    faceUp = true;
+    scrollToLast = false;
 }
 
 Pile::~Pile() {
@@ -13,56 +15,59 @@ Pile::~Pile() {
 }
 
 void Pile::addCard(Card card) {
-    if (_count < _maxCards)
-        _cards[_count++] = card;
+    if (cardCount < _maxCards) {
+        _cards[cardCount++] = card;
+        if (scrollToLast)
+            scrollOffset = max(0, cardCount - maxVisibleCards);
+    }
 }
 
 void Pile::addPile(Pile *pile) {
-    for (int i = pile->getCardCount() - 1; i >= 0; i--) {
+    for (int i = pile->cardCount - 1; i >= 0; i--) {
         addCard(pile->getCard(i));
     }
 }
 
-byte Pile::getCardCount() const {
-    return _count;
-}
-
 Card Pile::getCard(int indexFromTop) const {
-    if (indexFromTop < _count) {
-        return _cards[_count - indexFromTop - 1];
+    if (indexFromTop < cardCount) {
+        return _cards[cardCount - indexFromTop - 1];
     }
     return Card();
 }
 
 Card Pile::removeCardAt(byte idx) {
-    if (idx < _count) {
+    if (idx < cardCount) {
         Card card = _cards[idx];
-        --_count;
-        for (byte i = idx; i < _count; i++)
+        --cardCount;
+        for (byte i = idx; i < cardCount; i++)
             _cards[i] = _cards[i + 1];
+        if (scrollToLast)
+            scrollOffset = max(0, cardCount - maxVisibleCards);
         return card;
     }
     return Card();
 }
 
 void Pile::removeCards(int count, Pile *destination) {
-    count = min(count, _count);
-    _count -= count;
+    count = min(count, cardCount);
+    cardCount -= count;
     for (int i = 0; i < count; i++)
-        destination->addCard(_cards[_count + i]);
+        destination->addCard(_cards[cardCount + i]);
+    if (scrollToLast)
+        scrollOffset = max(0, cardCount - maxVisibleCards);
 }
 
 void Pile::empty() {
-    _count = 0;
-    cardOffset = 0;
+    cardCount = 0;
+    scrollOffset = 0;
 }
 
 void Pile::shuffle() {
-    for (int i = 0; i < _count; i++) {
-        int randomIndex = random(_count - i);
+    for (int i = 0; i < cardCount; i++) {
+        int randomIndex = random(cardCount - i);
         Card tmp = _cards[randomIndex];
-        _cards[randomIndex] = _cards[_count - i - 1];
-        _cards[_count - i - 1] = tmp;
+        _cards[randomIndex] = _cards[cardCount - i - 1];
+        _cards[cardCount - i - 1] = tmp;
     }
 }
 
@@ -80,6 +85,10 @@ byte Pile::getMaxCards() const {
     return _maxCards;
 }
 
-byte Pile::getMaxVisibleCards() const {
-    return _maxVisibleCards;
+byte Pile::getCardPosition(int indexFromTop) const {
+    if (indexFromTop < scrollOffset)
+        return 0;
+    if (indexFromTop >= scrollOffset + maxVisibleCards)
+        return faceUp ? maxVisibleCards - 1 : 0;
+    return indexFromTop - scrollOffset;
 }

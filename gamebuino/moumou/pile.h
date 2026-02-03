@@ -5,11 +5,10 @@
 #define PILE_H
 class Pile {
   public:
-    Pile(byte maxCards, byte maxVisibleCards);
+    Pile(byte maxCards, byte maxVisible);
     ~Pile();
     void addCard(Card card);
     void addPile(Pile *pile);
-    byte getCardCount() const;
     Card getCard(int indexFromTop) const;
     Card removeCardAt(byte idx);
     void removeCards(int count, Pile *destination);
@@ -17,14 +16,17 @@ class Pile {
     void shuffle();
     void newDeck();
     byte getMaxCards() const;
-    byte getMaxVisibleCards() const;
+    byte getCardPosition(int indexFromTop) const;
+
     byte x, y;
-    byte cardOffset;
+    byte scrollOffset;
+    bool faceUp;
+    byte maxVisibleCards;
+    byte cardCount;
+    bool scrollToLast;
 
   private:
     Card *_cards;
     byte _maxCards;
-    byte _maxVisibleCards;
-    byte _count;
 };
 #endif

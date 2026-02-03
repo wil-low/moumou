@@ -9,9 +9,7 @@ DEPS= \
 	$(SRC_PATH)/card.h \
 	$(SRC_PATH)/moumou.ino \
 	$(SRC_PATH)/pile.cpp \
-	$(SRC_PATH)/pile.h \
-	$(SRC_PATH)/undo.cpp \
-	$(SRC_PATH)/undo.h
+	$(SRC_PATH)/pile.h
 
 all: bin/MOUMOU.HEX
 
