@@ -1,2 +1,7 @@
 *.o
 console/moumou
+console/moumou.bin
+console/moumou.tap
+godot/
+moumou_flutter/
+spectrum/

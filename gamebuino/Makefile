@@ -5,9 +5,13 @@ SIM_PATH=$(HOME)/Arduino/Simbuino4Web-patched/hex
 SRC_PATH=moumou
 
 DEPS= \
+	$(SRC_PATH)/core.cpp \
+	$(SRC_PATH)/core.h \
+	$(SRC_PATH)/ai.cpp \
+	$(SRC_PATH)/ai.h \
+	$(SRC_PATH)/moumou.ino \
 	$(SRC_PATH)/card.cpp \
 	$(SRC_PATH)/card.h \
-	$(SRC_PATH)/moumou.ino \
 	$(SRC_PATH)/pile.cpp \
 	$(SRC_PATH)/pile.h
 

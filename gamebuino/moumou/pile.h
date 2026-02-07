@@ -5,7 +5,7 @@
 #define PILE_H
 class Pile {
   public:
-    Pile(byte maxCards, byte maxVisible);
+    Pile();
     ~Pile();
     void addCard(Card card);
     void addPile(Pile *pile);
@@ -22,11 +22,10 @@ class Pile {
     byte scrollOffset;
     bool faceUp;
     byte maxVisibleCards;
-    byte cardCount;
+    byte _count;
     bool scrollToLast;
 
-  private:
-    Card *_cards;
-    byte _maxCards;
+    static const byte _maxCards = 36;
+    Card _items[_maxCards];
 };
 #endif

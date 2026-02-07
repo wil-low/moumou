@@ -20,7 +20,7 @@ Suit Card::getSuit() const {
 }
 
 bool Card::isRed() const {
-    return getSuit() == heart || getSuit() == diamond;
+    return getSuit() == Hearts || getSuit() == Diamonds;
 }
 
 void Card::setFace(bool up) {
@@ -28,4 +28,11 @@ void Card::setFace(bool up) {
         _value = _value & 0x7f;
     else
         _value = _value | 0x80;
+}
+
+Value CardValue(Card card) {
+    return card.getValue();
+}
+Suit CardSuit(Card card) {
+    return card.getSuit();
 }

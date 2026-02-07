@@ -2,32 +2,32 @@
 
 #ifndef CARD_H
 #define CARD_H
-enum Suit {
-    spade = 0,
-    club,
-    heart,
-    diamond
-};
-enum Value {
-    undef = 1,
-    two,
-    three,
-    four,
-    five,
-    six,
-    seven,
-    eight,
-    nine,
-    ten,
-    jack,
-    queen,
-    king,
-    ace
-};
+#define Undefined UINT8_MAX
+
+typedef enum {
+    Spades = 0,
+    Hearts,
+    Diamonds,
+    Clubs,
+    SuitCount
+} Suit;
+
+typedef enum {
+    Six = 0,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Jack,
+    Queen,
+    King,
+    Ace,
+    ValueCount
+} Value;
 
 class Card {
   public:
-    Card() : Card(undef, spade, false) {
+    Card() : Card(Undefined, Spades, false) {
     }
     Card(Value value, Suit suit, bool faceDown);
     bool isFaceDown() const;
@@ -39,4 +39,8 @@ class Card {
   private:
     byte _value;
 };
+
+Value CardValue(Card card);
+Suit CardSuit(Card card);
+
 #endif
