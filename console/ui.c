@@ -98,7 +98,8 @@ uint8_t human_move(GameState *state) {
     return 0; // never reach here
 }
 
-Suit human_demand_suit(GameState *) {
+Suit human_demand_suit(GameState *state) {
+    (void)state;
     while (true) {
         printf("Demand suit (%s): ", SUITS);
         char suit[5];

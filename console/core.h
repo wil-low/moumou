@@ -7,7 +7,13 @@
 
 #define Undefined UINT8_MAX
 
-typedef enum : uint8_t {
+#ifdef __x86_64__
+#define INLINE inline
+#else
+#define INLINE
+#endif
+
+typedef enum {
     Spades = 0,
     Hearts,
     Diamonds,
@@ -15,7 +21,7 @@ typedef enum : uint8_t {
     SuitCount
 } Suit;
 
-typedef enum : uint8_t {
+typedef enum {
     Six = 0,
     Seven,
     Eight,
@@ -32,13 +38,13 @@ static const char SUITS[] = "shdc";
 static const char VALUES[] = "6789TJQKA";
 
 typedef uint8_t Card;
-static inline uint8_t CardValue(Card card) {
+static INLINE uint8_t CardValue(Card card) {
     return card & 0b1111;
 }
-static inline uint8_t CardSuit(Card card) {
+static INLINE uint8_t CardSuit(Card card) {
     return (card >> 4) & 0b11;
 }
-static inline uint8_t CardFlags(Card card) {
+static INLINE uint8_t CardFlags(Card card) {
     return card >> 6;
 }
 
@@ -47,7 +53,7 @@ typedef struct {
     Card _items[SuitCount * ValueCount];
 } Deck;
 
-typedef enum : uint8_t {
+typedef enum {
     Human = 0,
     Level_1,
     Level_2,

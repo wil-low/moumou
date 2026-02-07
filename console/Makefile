@@ -18,8 +18,15 @@ HDRFILES	= \
 $(BINARY): $(SRCFILES) $(HDRFILES)
 	gcc -Wextra -Wall -std=c99 -O0 -g -o $(BINARY) $(SRCFILES)
 
+$(BINARY).bin: $(SRCFILES) $(HDRFILES)
+	zcc +zx -lndos $(SRCFILES) -create-app -o $(BINARY).bin -startup=1
+
 run: $(BINARY)
 	./$(BINARY)
 
+spectrum: $(BINARY).bin
+
 clean:
-	rm $(BINARY)
+	rm -rf $(BINARY) $(BINARY).bin $(BINARY).tap
+
+.PHONY: run spectrum clean

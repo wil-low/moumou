@@ -11,7 +11,7 @@ GameState game_state;
 void setup() {
     printf("Moumou\n");
 
-    srand(RANDOM_SEED ? RANDOM_SEED : time(NULL));
+    srand(RANDOM_SEED ? RANDOM_SEED : (unsigned int)time(NULL));
 
     GameState *state = &game_state;
 
