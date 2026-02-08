@@ -1,5 +1,6 @@
 #include "core.h"
 #include "ai.h"
+#include "ui.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -129,11 +130,17 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
     return result;
 }
 
-void new_round(GameState *state) {
-    for (uint8_t i = 0; i < PLAYER_COUNT; ++i) {
-        state->_players[i]._hand._count = 0;
-    }
+void new_round(GameState *state, UI *ui) {
+    ui->_activeLocation = stock;
+    ui->_cardIndex = 0;
+    ui->_cursorX = 11;
+    ui->_cursorY = 4;
 
+    state->_deck.newDeck();
+    state->_deck.shuffle();
+
+    state->_players[0]._hand.empty();
+    state->_players[1]._hand.empty();
     state->_cur_player = 0;
     state->_turn = 0;
     state->_demanded = Undefined;
@@ -142,36 +149,21 @@ void new_round(GameState *state) {
     state->_valid_moves._restrict_value = false;
     state->_last_card = Card();
     state->_moumou_counter = 0;
+    state->_input_cmd = CMD_NONE;
 
-    // Init deck
-    state->_deck._count = SuitCount * ValueCount;
-    state->_table._count = 0;
-    state->_played._count = 0;
-    uint8_t idx = 0;
-    for (uint8_t s = 0; s < SuitCount; ++s) {
-        for (uint8_t v = 0; v < ValueCount; ++v) {
-            state->_deck._items[idx] = Card(v, s, true);
-            ++idx;
-        }
-    }
+    state->_played.empty();
+    state->_table.empty();
 
-    printf("\n======================== New round, Player %d, turn %d "
-           "========================\n\n",
-           state->_cur_player, state->_turn);
+    // Initialize the data structure to deal out the initial board.
+    ui->_cardAnimationCount = 0;
+    for (int i = 0; i < INITIAL_HAND; i++)
+        for (int p = 0; p < 2; p++)
+            ui->animateMove(&state->_deck, 0, &state->_players[p]._hand, i);
+    ui->animateMove(&state->_deck, 0, &state->_table, 0);
 
-    // deal_card(state, 0, King, Clubs);
-    // deal_card(state, 0, Eight, Clubs);
-    // deal_card(state, 0, Ten, Hearts);
-    // deal_card(state, 0, Queen, Clubs);
-    // deal_card(state, 0, Seven, Clubs);
-
-    // Deal initial cards
-    draw(state, 0, INITIAL_HAND);
-    draw(state, 1, INITIAL_HAND);
-
-    Card first = deal(state);
-    state->_table._items[state->_table._count++] = first;
-    state->_last_card = first;
+    ui->_dealingCount = ui->_cardAnimationCount;
+    ui->_cardAnimationCount = 0;
+    ui->_mode = initialDealing;
 }
 
 void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit) {

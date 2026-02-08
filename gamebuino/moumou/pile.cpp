@@ -9,7 +9,6 @@ Pile::Pile() {
 }
 
 Pile::~Pile() {
-    delete[] _items;
 }
 
 void Pile::addCard(Card card) {

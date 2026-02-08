@@ -51,13 +51,15 @@ class GameState {
     uint8_t _input_cmd;
 };
 
+class UI;
+
 void recycle_deck(GameState *state);
 void move_played_to_table(GameState *state);
 Card deal(GameState *state);
 bool draw(GameState *state, uint8_t player_idx, uint8_t count);
 bool find_valid_moves(GameState *state, uint8_t player_idx);
 uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx);
-void new_round(GameState *state);
+void new_round(GameState *state, UI *ui);
 uint16_t hand_score(GameState *state, uint8_t player_idx);
 void update_score(GameState *state);
 void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit);
