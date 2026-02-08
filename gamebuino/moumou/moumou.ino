@@ -55,7 +55,7 @@ struct CardAnimation {
 };
 
 // Used to deal at the start of the game.
-CardAnimation cardAnimations[20];
+CardAnimation cardAnimations[INITIAL_HAND * 2 + 1];
 byte cardAnimationCount = 0;
 
 struct CardBounce {
@@ -118,12 +118,12 @@ void setup() {
 
     // Initialize positions of piles.
     gameState._deck.x = 1;
-    gameState._deck.y = 0;
+    gameState._deck.y = 1;
     gameState._deck.maxVisibleCards = 1;
     gameState._deck.faceUp = false;
 
     gameState._table.x = 16;
-    gameState._table.y = 0;
+    gameState._table.y = 1;
     gameState._table.maxVisibleCards = 4;
     gameState._table.scrollToLast = true;
 
@@ -137,7 +137,7 @@ void setup() {
     gameState._players[0]._hand.maxVisibleCards = 7;
 
     gameState._players[1]._hand.x = 73;
-    gameState._players[1]._hand.y = 0;
+    gameState._players[1]._hand.y = 1;
     gameState._players[1]._hand.maxVisibleCards = 1;
     gameState._players[1]._hand.faceUp = false;
 
@@ -166,8 +166,9 @@ void loop() {
         // Draw the board.
         if (mode != gameOver) {
             drawBoard();
-            drawNumberRight(cardAnimationCount, 83, 33);
-            drawNumberRight(dealingCount, 83, 41);
+            // debug(cardAnimationCount, dealingCount);
+            debug(gameState._last_card.getSuit(),
+                  gameState._last_card.getValue() + 6);
         }
 
         // Draw other things based on the current state of the game.
@@ -190,8 +191,10 @@ void showTitle() {
 start:
     gb.display.persistence = true;
     gb.titleScreen(F(""), title);
-    randomSeed(45);
-    // gb.pickRandomSeed();
+    if (RANDOM_SEED)
+        randomSeed(RANDOM_SEED);
+    else
+        gb.pickRandomSeed();
     gb.battery.show = false;
     setupNewGame();
     readEeprom();
@@ -260,6 +263,14 @@ void setupNewGame() {
     gameState._players[0]._hand.empty();
     gameState._players[1]._hand.empty();
     gameState._cur_player = 0;
+    gameState._turn = 0;
+    gameState._demanded = Undefined;
+    gameState._valid_moves._draw = true;
+    gameState._valid_moves._pass = false;
+    gameState._valid_moves._restrict_value = false;
+    gameState._last_card = Card();
+    gameState._moumou_counter = 0;
+    gameState._input_cmd = CMD_NONE;
 
     gameState._played.empty();
     gameState._table.empty();
@@ -269,6 +280,8 @@ void setupNewGame() {
     for (int i = 0; i < INITIAL_HAND; i++)
         for (int p = 0; p < 2; p++)
             animateMove(&gameState._deck, 0, &gameState._players[p]._hand, i);
+    animateMove(&gameState._deck, 0, &gameState._table, 0);
+
     dealingCount = cardAnimationCount;
     cardAnimationCount = 0;
     mode = initialDealing;
@@ -337,55 +350,65 @@ void handleSelectingButtons() {
 
         switch (activeLocation) {
         case stock:
-            if (gameState._deck._count != 0) {
-                cardAnimationCount = 0;
-                for (int i = 0; i < 1; i++)
-                    animateMove(&gameState._deck, 0,
-                                &gameState._players[0]._hand,
-                                gameState._players[0]._hand._count);
-                dealingCount = cardAnimationCount;
-                cardAnimationCount = 0;
-                mode = moving;
-                // playSoundA();
-            } else {
-                /*while (talonDeck._count != 0) {
-                    drawAndFlip(&talonDeck, &gameState._deck);
+            if (gameState._valid_moves._draw) {
+                if (gameState._deck._count != 0) {
+                    cardAnimationCount = 0;
+                    for (int i = 0; i < 1; i++)
+                        animateMove(&gameState._deck, 0,
+                                    &gameState._players[0]._hand,
+                                    gameState._players[0]._hand._count);
+                    dealingCount = cardAnimationCount;
+                    cardAnimationCount = 0;
+                    mode = moving;
+                    gameState._input_cmd = CMD_DRAW;
+                    playSoundA();
+                } else {
+                    /*while (talonDeck._count != 0) {
+                        drawAndFlip(&talonDeck, &gameState._deck);
+                    }
+                    UndoAction action;
+                    action.setFlippedTalon();
+                    undo.pushAction(action);*/
                 }
-                UndoAction action;
-                action.setFlippedTalon();
-                undo.pushAction(action);*/
             }
             break;
-        case hand:
-            if (gameState._players[0]._hand._count) {
-                cardAnimationCount = 0;
-                animateMove(&gameState._players[0]._hand,
-                            cardIndex +
-                                gameState._players[0]._hand.scrollOffset,
-                            &gameState._played, gameState._played._count);
-                dealingCount = cardAnimationCount;
-                cardAnimationCount = 0;
-                if (gameState._players[0]._hand._count -
-                        gameState._players[0]._hand.scrollOffset >=
-                    gameState._players[0]._hand.maxVisibleCards) {
-                } else if (gameState._players[0]._hand.scrollOffset > 0) {
-                    gameState._players[0]._hand.scrollOffset--;
-                } else if (cardIndex == gameState._players[0]._hand._count &&
-                           cardIndex > 0) {
-                    cardIndex--;
+        case hand: {
+            Pile &p = gameState._players[0]._hand;
+            if (p._count) {
+                uint8_t idx = cardIndex + p.scrollOffset;
+                for (uint8_t i = 0; i < gameState._valid_moves._count; ++i) {
+                    if (idx == gameState._valid_moves._items[i]) {
+                        cardAnimationCount = 0;
+                        animateMove(&p, idx, &gameState._played,
+                                    gameState._played._count);
+                        dealingCount = cardAnimationCount;
+                        cardAnimationCount = 0;
+                        if (p._count - p.scrollOffset >= p.maxVisibleCards) {
+                        } else if (p.scrollOffset > 0) {
+                            p.scrollOffset--;
+                        } else if (cardIndex == p._count && cardIndex > 0) {
+                            cardIndex--;
+                        }
+                        mode = moving;
+                        gameState._input_cmd = idx;
+                        playSoundA();
+                    }
                 }
-                mode = moving;
             }
-            break;
+        } break;
         case played:
-            cardAnimationCount = 0;
-            byte count = gameState._played._count;
-            for (int i = 0; i < count; i++)
-                animateMove(&gameState._played, 0, &gameState._table,
-                            gameState._table._count + i);
-            dealingCount = cardAnimationCount;
-            cardAnimationCount = 0;
-            mode = moving;
+            if (gameState._valid_moves._pass) {
+                cardAnimationCount = 0;
+                byte count = gameState._played._count;
+                for (int i = 0; i < count; i++)
+                    animateMove(&gameState._played, 0, &gameState._table,
+                                gameState._table._count + i);
+                dealingCount = cardAnimationCount;
+                cardAnimationCount = 0;
+                mode = moving;
+                gameState._input_cmd = CMD_PASS;
+                playSoundA();
+            }
             break;
         }
     }
@@ -448,16 +471,14 @@ void drawBoard() {
     // Stock
     drawDeck(&gameState._deck, false);
 
+    if (gameState._valid_moves._draw)
+        drawAllowedMove(gameState._deck.x, gameState._deck.y);
+
     // Scores
     drawNumberRight(gameState._played._count, 83, 17);
     // drawNumberRight(gameState._players[1]._score, 83, 17);
     drawNumberRight(gameState._players[0]._score, 83, 25);
 
-    // Bot deck
-    drawDeck(&gameState._players[1]._hand, true);
-
-    // Human deck
-    drawDeck(&gameState._players[0]._hand, false);
     if (gameState._players[1]._hand._count != 0) {
         drawCard(gameState._players[1]._hand.x, gameState._players[1]._hand.y,
                  Card(Undefined, Spades, true));
@@ -473,7 +494,20 @@ void drawBoard() {
         gameState._players[0]._hand.maxVisibleCards)
         drawRightArrow(81, 38);
 
+    uint8_t idx = 0;
+    for (uint8_t i = 0; i < gameState._players[0]._hand._count; ++i) {
+        if (idx < gameState._valid_moves._count &&
+            i == gameState._valid_moves._items[idx]) {
+            drawAllowedMove(gameState._players[0]._hand.x + 11 * i,
+                            gameState._players[0]._hand.y);
+            idx++;
+        }
+    }
+
     drawDeck(&gameState._played, false);
+    if (gameState._valid_moves._pass)
+        drawAllowedMove(gameState._played.x, gameState._played.y);
+
     drawDeck(&gameState._table, false);
 }
 
@@ -768,11 +802,53 @@ void drawDealing() {
             ca->y = updatePosition(ca->y, ca->destY);
             if (ca->x == ca->destX && ca->y == ca->destY) {
                 ca->destination->addCard(ca->card);
+                gameState._last_card = ca->card;
             }
         }
     }
-    if (doneDealing)
+    if (doneDealing) {
         mode = selecting;
+        if (gameState._input_cmd != CMD_NONE) {
+            if (gameState._input_cmd == CMD_DRAW) {
+                gameState._valid_moves._draw = false;
+            } else if (gameState._input_cmd == CMD_PASS) {
+            } else {
+                uint8_t result = play_card(&gameState, gameState._cur_player,
+                                           gameState._input_cmd);
+                if (result == PLAY_MOUMOU) {
+                    // printf("Player #%d declares Moumou\n",
+                    //        gameState._cur_player);
+                    update_score(&gameState);
+                    setupNewGame();
+                    return;
+                } else {
+                    gameState._demanded = Undefined;
+                    gameState._valid_moves._restrict_value =
+                        result != PLAY_OPPONENT_SKIPS &&
+                        CardValue(gameState._last_card) != Six;
+                }
+            }
+            gameState._valid_moves._pass =
+                CardValue(gameState._last_card) != Six;
+
+            if (gameState._input_cmd == CMD_PASS) {
+                if (gameState._played._count &&
+                    CardValue(gameState._last_card) == Jack) {
+                    gameState._demanded = Undefined;
+                    gameState._demanded = input_suit(&gameState);
+                    // printf("Player #%d demands %c\n", gameState._cur_player,
+                    //        SUITS[gameState._demanded]);
+                }
+                move_played_to_table(&gameState);
+                gameState._valid_moves._pass = false;
+                gameState._valid_moves._restrict_value = false;
+                gameState._turn++;
+                gameState._cur_player =
+                    (gameState._cur_player + 1) % PLAYER_COUNT;
+            }
+        }
+        find_valid_moves(&gameState, gameState._cur_player);
+    }
 }
 
 void drawWonGame() {
@@ -929,6 +1005,17 @@ void drawSegmentG(byte x, byte y) {
     gb.display.drawFastHLine(x, y + 2, 3);
 }
 
+void drawAllowedMove(byte x, byte y) {
+    if (gameState._cur_player == 0) {
+        gb.display.setColor(WHITE);
+        gb.display.drawFastVLine(x + 6, y - 1, 4);
+        gb.display.drawFastHLine(x + 7, y + 2, 3);
+        gb.display.drawPixel(x + 8, y);
+        gb.display.setColor(BLACK);
+        gb.display.drawRect(x + 7, y - 1, 3, 3);
+    }
+}
+
 void playSoundA() {
     gb.sound.playPattern(patternA, 0);
 }
@@ -1024,6 +1111,7 @@ void displayStatistics() {
     }
 }
 
-void debug(unsigned char c) {
-    gb.display.drawChar(35, 1, c, 1);
+void debug(uint8_t n0, uint8_t n1) {
+    drawNumberRight(n0, 83, 33);
+    drawNumberRight(n1, 83, 41);
 }

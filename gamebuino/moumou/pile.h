@@ -25,7 +25,7 @@ class Pile {
     byte _count;
     bool scrollToLast;
 
-    static const byte _maxCards = 36;
+    static const byte _maxCards = SuitCount * ValueCount;
     Card _items[_maxCards];
 };
 #endif

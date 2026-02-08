@@ -14,6 +14,7 @@ typedef enum {
 
 #define CMD_DRAW 253
 #define CMD_PASS 254
+#define CMD_NONE 255
 
 #define PLAY_OK 0
 #define PLAY_OPPONENT_SKIPS 1
@@ -47,6 +48,7 @@ class GameState {
     ValidMoves _valid_moves;
     Card _last_card;
     uint8_t _moumou_counter;
+    uint8_t _input_cmd;
 };
 
 void recycle_deck(GameState *state);

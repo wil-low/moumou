@@ -9,6 +9,7 @@ DEPS= \
 	$(SRC_PATH)/core.h \
 	$(SRC_PATH)/ai.cpp \
 	$(SRC_PATH)/ai.h \
+	$(SRC_PATH)/config.h \
 	$(SRC_PATH)/moumou.ino \
 	$(SRC_PATH)/card.cpp \
 	$(SRC_PATH)/card.h \

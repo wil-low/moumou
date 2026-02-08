@@ -121,11 +121,6 @@ uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
     state->_valid_moves._pass = CardValue(*p_card) != Six;
 
     state->_last_card = *p_card;
-    state->_played._items[state->_played._count++] = *p_card;
-    for (uint8_t i = card_idx + 1; i < p->_hand._count; ++i) {
-        p->_hand._items[i - 1] = p->_hand._items[i];
-    }
-    p->_hand._count--;
 
     // printf("Player #%d plays ", state->_cur_player);
     // render_card(&state->_last_card);
