@@ -139,9 +139,11 @@ void UI::drawBoard() {
         drawAllowedMove(gameState._deck.x, gameState._deck.y);
 
     // Scores
-    drawNumberRight(gameState._played._count, 83, 17);
+    drawNumberRight(gameState._cur_player, 83, 17);
+    // drawNumberRight(gameState._fvm_calls, 83, 17);
+    drawNumberRight(gameState._input_cmd, 83, 25);
     // drawNumberRight(gameState._players[1]._score, 83, 17);
-    drawNumberRight(gameState._players[0]._score, 83, 25);
+    // drawNumberRight(gameState._players[0]._score, 83, 25);
 
     if (gameState._players[1]._hand._count != 0) {
         drawCard(gameState._players[1]._hand.x, gameState._players[1]._hand.y,
@@ -435,9 +437,9 @@ void UI::getCursorDestination(byte &x, byte &y, bool &flipped) {
 
     switch (_activeLocation) {
     case stock:
-        x = pile->x + 10;
+        x = pile->x - 2;
         y = pile->y + 4;
-        flipped = false;
+        flipped = true;
         break;
     case table:
         x = pile->x + 4 * 11;
@@ -483,45 +485,7 @@ void UI::drawDealing() {
     }
     if (doneDealing) {
         _mode = selecting;
-        if (gameState._input_cmd != CMD_NONE) {
-            if (gameState._input_cmd == CMD_DRAW) {
-                gameState._valid_moves._draw = false;
-            } else if (gameState._input_cmd == CMD_PASS) {
-            } else {
-                uint8_t result = play_card(&gameState, gameState._cur_player,
-                                           gameState._input_cmd);
-                if (result == PLAY_MOUMOU) {
-                    // printf("Player #%d declares Moumou\n",
-                    //        gameState._cur_player);
-                    update_score(&gameState);
-                    new_round(&gameState, this);
-                    return;
-                } else {
-                    gameState._demanded = Undefined;
-                    gameState._valid_moves._restrict_value =
-                        result != PLAY_OPPONENT_SKIPS &&
-                        CardValue(gameState._last_card) != Six;
-                }
-            }
-            gameState._valid_moves._pass =
-                CardValue(gameState._last_card) != Six;
-
-            if (gameState._input_cmd == CMD_PASS) {
-                if (gameState._played._count &&
-                    CardValue(gameState._last_card) == Jack) {
-                    gameState._demanded = Undefined;
-                    gameState._demanded = input_suit(&gameState);
-                    // printf("Player #%d demands %c\n", gameState._cur_player,
-                    //        SUITS[gameState._demanded]);
-                }
-                move_played_to_table(&gameState);
-                gameState._valid_moves._pass = false;
-                gameState._valid_moves._restrict_value = false;
-                gameState._turn++;
-                gameState._cur_player =
-                    (gameState._cur_player + 1) % PLAYER_COUNT;
-            }
-        }
+        process_input(&gameState, this);
         find_valid_moves(&gameState, gameState._cur_player);
     }
 }

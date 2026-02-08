@@ -18,7 +18,7 @@ void setup() {
     GameState *state = &gameState;
 
     // Initialize positions of piles.
-    gameState._deck.x = 1;
+    gameState._deck.x = 2;
     gameState._deck.y = 1;
     gameState._deck.maxVisibleCards = 1;
     gameState._deck.faceUp = false;
@@ -138,16 +138,7 @@ void handleSelectingButtons() {
         case stock:
             if (gameState._valid_moves._draw) {
                 if (gameState._deck._count != 0) {
-                    ui._cardAnimationCount = 0;
-                    for (int i = 0; i < 1; i++)
-                        ui.animateMove(&gameState._deck, 0,
-                                       &gameState._players[0]._hand,
-                                       gameState._players[0]._hand._count);
-                    ui._dealingCount = ui._cardAnimationCount;
-                    ui._cardAnimationCount = 0;
-                    ui._mode = moving;
-                    gameState._input_cmd = CMD_DRAW;
-                    ui.playSoundA();
+                    startDraw();
                 } else {
                     /*while (talonDeck._count != 0) {
                         drawAndFlip(&talonDeck, &gameState._deck);
@@ -164,43 +155,62 @@ void handleSelectingButtons() {
                 uint8_t idx = ui._cardIndex + p.scrollOffset;
                 for (uint8_t i = 0; i < gameState._valid_moves._count; ++i) {
                     if (idx == gameState._valid_moves._items[i]) {
-                        ui._cardAnimationCount = 0;
-                        ui.animateMove(&p, idx, &gameState._played,
-                                       gameState._played._count);
-                        ui._dealingCount = ui._cardAnimationCount;
-                        ui._cardAnimationCount = 0;
-                        if (p._count - p.scrollOffset >= p.maxVisibleCards) {
-                        } else if (p.scrollOffset > 0) {
-                            p.scrollOffset--;
-                        } else if (ui._cardIndex == p._count &&
-                                   ui._cardIndex > 0) {
-                            ui._cardIndex--;
-                        }
-                        ui._mode = moving;
-                        gameState._input_cmd = idx;
-                        ui.playSoundA();
+                        startPlayCard(p, idx);
+                        break;
                     }
                 }
             }
         } break;
         case played:
-            if (gameState._valid_moves._pass) {
-                ui._cardAnimationCount = 0;
-                byte count = gameState._played._count;
-                for (int i = 0; i < count; i++)
-                    ui.animateMove(&gameState._played, 0, &gameState._table,
-                                   gameState._table._count + i);
-                ui._dealingCount = ui._cardAnimationCount;
-                ui._cardAnimationCount = 0;
-                ui._mode = moving;
-                gameState._input_cmd = CMD_PASS;
-                ui.playSoundA();
-            }
+            if (gameState._valid_moves._pass)
+                startPass();
             break;
         }
     }
     if (originalLocation != ui._activeLocation)
         ui._cardIndex = 0;
+}
+
+void startDraw() {
+    ui._cardAnimationCount = 0;
+    for (int i = 0; i < 1; i++)
+        ui.animateMove(&gameState._deck, 0,
+                       &gameState._players[gameState._cur_player]._hand,
+                       gameState._players[gameState._cur_player]._hand._count);
+    ui._dealingCount = ui._cardAnimationCount;
+    ui._cardAnimationCount = 0;
+    ui._mode = moving;
+    gameState._input_cmd = CMD_DRAW;
+    ui.playSoundA();
+}
+
+void startPlayCard(Pile &p, uint8_t idx) {
+    ui._cardAnimationCount = 0;
+    ui.animateMove(&p, idx, &gameState._played, gameState._played._count);
+    ui._dealingCount = ui._cardAnimationCount;
+    ui._cardAnimationCount = 0;
+    if (p._count - p.scrollOffset >= p.maxVisibleCards) {
+    } else if (p.scrollOffset > 0) {
+        p.scrollOffset--;
+    } else if (ui._cardIndex == p._count && ui._cardIndex > 0) {
+        ui._cardIndex--;
+    }
+    ui._mode = moving;
+    gameState._input_cmd = idx;
+    ui.playSoundA();
+}
+
+void startPass() {
+    ui._cardAnimationCount = 0;
+    byte count = gameState._played._count;
+    for (int i = 0; i < count; i++)
+        ui.animateMove(&gameState._played, 0, &gameState._table,
+                       gameState._table._count + i);
+    ui._dealingCount = ui._cardAnimationCount;
+    ui._cardAnimationCount = 0;
+    ui._mode = moving;
+    gameState._input_cmd = CMD_PASS;
+    ui.playSoundA();
 }
 
 void checkWonGame() {

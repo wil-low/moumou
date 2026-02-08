@@ -49,10 +49,12 @@ class GameState {
     Card _last_card;
     uint8_t _moumou_counter;
     uint8_t _input_cmd;
+    uint8_t _fvm_calls;
 };
 
 class UI;
 
+void process_input(GameState *state, UI *ui);
 void recycle_deck(GameState *state);
 void move_played_to_table(GameState *state);
 Card deal(GameState *state);
