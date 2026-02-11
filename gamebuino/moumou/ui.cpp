@@ -44,25 +44,35 @@ void UI::drawBoard() {
     if (p._hand._count - p._hand.scrollOffset > p._hand.maxVisibleCards)
         drawRightArrow(81, 38);
 
-    drawDeck(&gameState._played, false);
     drawDeck(&gameState._table, false);
 
-    if (gameState._demanded != Undefined)
-        drawSuit(63, 4, gameState._demanded);
+    if (_mode == MODE_SELECT_SUIT) {
+        drawSuitSelector();
+    } else {
+        drawDeck(&gameState._played, false);
 
-    if (_mode != MODE_ANIMATE) {
-        uint8_t idx = 0;
-        for (uint8_t i = 0; i < p._hand._count; ++i) {
-            if (idx < gameState._valid_moves._count &&
-                i == gameState._valid_moves._items[idx]) {
-                drawAllowedMove(p._hand.x + 11 * i, p._hand.y);
-                idx++;
+        if (_mode != MODE_ANIMATE) {
+            uint8_t idx = 0;
+            for (uint8_t i = 0; i < p._hand._count; ++i) {
+                if (idx < gameState._valid_moves._count &&
+                    i == gameState._valid_moves._items[idx]) {
+                    drawAllowedMove(p._hand.x + 11 * i, p._hand.y);
+                    idx++;
+                }
             }
+            if (gameState._valid_moves._flags & FLAG_DRAW)
+                drawAllowedMove(gameState._deck.x, gameState._deck.y);
+            if (gameState._valid_moves._flags & FLAG_PASS)
+                drawAllowedMove(gameState._played.x, gameState._played.y);
         }
-        if (gameState._valid_moves._flags & FLAG_DRAW)
-            drawAllowedMove(gameState._deck.x, gameState._deck.y);
-        if (gameState._valid_moves._flags & FLAG_PASS)
-            drawAllowedMove(gameState._played.x, gameState._played.y);
+    }
+
+    if (gameState._demanded != Undefined) {
+        gb.display.setColor(
+            (gameState._demanded == Hearts || gameState._demanded == Diamonds)
+                ? PSEUDO_GRAY
+                : BLACK);
+        drawSuit(63, 4, gameState._demanded);
     }
 }
 
@@ -85,7 +95,11 @@ void UI::drawDealing() {
     }
     if (doneDealing) {
         _dealingCount = 0;
-        _mode = MODE_PLAYER_MOVE;
+        if (gameState._pending_cmd == CMD_SELECT_SUIT) {
+            _selected_suit = Spades;
+            _mode = MODE_SELECT_SUIT;
+        } else
+            _mode = MODE_PLAYER_MOVE;
     }
 }
 
@@ -210,6 +224,33 @@ void UI::animateMove(Pile *src, byte srcIdx, Pile *dst, byte dstIdx) {
 
 const uint16_t patternA[] PROGMEM = {0x0045, 0x0118, 0x0000};
 const uint16_t patternB[] PROGMEM = {0x0045, 0x0108, 0x0000};
+
+void UI::drawSuitSelector() {
+    static const uint8_t X = 19, Y = 17, SPACING = 12;
+    for (uint8_t i = 0; i < SuitCount; ++i) {
+        uint8_t x = X + i * SPACING;
+        gb.display.setColor(BLACK);
+        if (i == _selected_suit) {
+            gb.display.drawFastHLine(x + 1, Y, 2);
+            gb.display.drawFastVLine(x + 10, Y + 1, 3);
+            gb.display.drawFastHLine(x + 1, Y + 12, 2);
+            gb.display.drawFastVLine(x, Y + 1, 3);
+
+            gb.display.drawFastHLine(x + 8, Y, 2);
+            gb.display.drawFastVLine(x + 10, Y + 9, 3);
+            gb.display.drawFastHLine(x + 8, Y + 12, 2);
+            gb.display.drawFastVLine(x, Y + 9, 3);
+        } else {
+            gb.display.drawFastHLine(x + 1, Y, 9);
+            gb.display.drawFastVLine(x + 10, Y + 1, 11);
+            gb.display.drawFastHLine(x + 1, Y + 12, 9);
+            gb.display.drawFastVLine(x, Y + 1, 11);
+        }
+        gb.display.setColor((i == Hearts || i == Diamonds) ? PSEUDO_GRAY
+                                                           : BLACK);
+        drawSuit(x + 3, Y + 4, i);
+    }
+}
 
 void UI::drawDeck(Pile *deck, bool showCount) {
     for (int i = 0; i < deck->maxVisibleCards; ++i) {

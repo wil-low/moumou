@@ -41,6 +41,9 @@ class UI {
     // Position of the cursor for animation.
     byte _cursorX, _cursorY;
 
+    // Position of the suit marker in the selector
+    Suit _selected_suit;
+
     // AI level
     byte _botLevel;
 
@@ -63,6 +66,7 @@ class UI {
     void startPass();
 
     void drawBoard();
+    void drawSuitSelector();
     void drawDeck(Pile *deck, bool showCount);
     void drawCard(byte x, byte y, Card card);
     void drawSuit(byte x, byte y, Suit suit);

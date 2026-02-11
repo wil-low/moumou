@@ -2,7 +2,7 @@
 #include "core.h"
 #include <stdlib.h>
 
-uint8_t ai_move(GameState *state) {
+Command ai_move(GameState *state) {
     switch (state->_players[state->_cur_player]._level) {
     case Level_2:
         if (state->_valid_moves._count)
@@ -25,7 +25,7 @@ uint8_t ai_move(GameState *state) {
     return CMD_NONE; // Human
 }
 
-Suit ai_demand_suit(GameState *state) {
+Command ai_demand_suit(GameState *state) {
     Player *p = &state->_players[state->_cur_player];
     switch (p->_level) {
     case Level_2: {
@@ -38,10 +38,10 @@ Suit ai_demand_suit(GameState *state) {
             if (count_by_suit[i] > count_by_suit[max_idx])
                 max_idx = i;
         }
-        return (Suit)max_idx;
+        return CMD_DEMAND_SPADES + max_idx;
     }
     case Level_1:
-        return rand() % SuitCount;
+        return CMD_DEMAND_SPADES + rand() % SuitCount;
     }
-    return (Suit)Undefined; // Human
+    return CMD_SELECT_SUIT; // Human
 }

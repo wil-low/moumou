@@ -69,6 +69,9 @@ void loop() {
         case MODE_PLAYER_MOVE:
             handleSelectingButtons();
             break;
+        case MODE_SELECT_SUIT:
+            handleSuitSelector();
+            break;
         }
 
         // Draw the board.
@@ -173,6 +176,20 @@ void handleSelectingButtons() {
     }
     if (originalLocation != ui._activeLocation)
         ui._cardIndex = 0;
+}
+
+void handleSuitSelector() {
+    // Handle buttons when user is using the arrow cursor to navigate.
+    if (gb.buttons.pressed(BTN_RIGHT)) {
+        if (ui._selected_suit < Clubs)
+            ui._selected_suit = ui._selected_suit + 1;
+    }
+    if (gb.buttons.pressed(BTN_LEFT)) {
+        if (ui._selected_suit > Spades)
+            ui._selected_suit = ui._selected_suit - 1;
+    }
+    if (gb.buttons.pressed(BTN_A))
+        gameState._pending_cmd = CMD_DEMAND_SPADES + ui._selected_suit;
 }
 
 void checkWonGame() {

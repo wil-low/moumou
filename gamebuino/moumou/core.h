@@ -15,7 +15,7 @@ typedef enum {
 typedef enum {
     MODE_PLAYER_MOVE = 0,
     MODE_ANIMATE,
-    MODE_DEMAND_SUIT,
+    MODE_SELECT_SUIT,
     MODE_ROUND_OVER
 } GameMode;
 
@@ -30,6 +30,7 @@ typedef enum {
     CMD_DEMAND_DIAMOND = 106,
     CMD_DEMAND_CLUBS = 107,
     CMD_SELECT_MOVE = 108,
+    CMD_SELECT_SUIT = 109,
     CMD_NONE = 255
 } Command;
 

@@ -4,7 +4,7 @@
 #include "core.h"
 #include <stdint.h>
 
-uint8_t ai_move(GameState *state);
-Suit ai_demand_suit(GameState *state);
+Command ai_move(GameState *state);
+Command ai_demand_suit(GameState *state);
 
 #endif

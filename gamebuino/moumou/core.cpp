@@ -89,29 +89,37 @@ void process_command(GameState *state, UI *ui) {
     state->_pending_cmd = CMD_NONE;
     switch (state->_input_cmd) {
     case CMD_PASS:
-        ui->startPass();
         state->_pending_cmd = CMD_NEXT_PLAYER;
         if (state->_played._count && CardValue(state->_last_card) == Jack) {
-            state->_demanded = Undefined;
-            // state->_demanded = input_suit(state);
+            state->_pending_cmd = ai_demand_suit(state);
         }
         state->_valid_moves._flags &= ~FLAG_PASS;
         state->_valid_moves._flags &= ~FLAG_RESTRICT_VALUE;
+        ui->startPass();
         break;
     case CMD_DRAW:
-        ui->startDraw();
         state->_pending_cmd = CMD_SELECT_MOVE;
         state->_valid_moves._flags &= ~FLAG_DRAW;
+        ui->startDraw();
         break;
     case CMD_NEXT_PLAYER:
         state->_cur_player = (state->_cur_player + 1) % PLAYER_COUNT;
         state->_pending_cmd = CMD_SELECT_MOVE;
         state->_valid_moves._flags |= FLAG_DRAW;
-        // ui->_mode = MODE_ANIMATE;
         break;
     case CMD_SELECT_MOVE:
         find_valid_moves(state, state->_cur_player);
         state->_pending_cmd = ai_move(state);
+        break;
+    case CMD_SELECT_SUIT:
+        break;
+    case CMD_DEMAND_SPADES:
+    case CMD_DEMAND_HEARTS:
+    case CMD_DEMAND_DIAMOND:
+    case CMD_DEMAND_CLUBS:
+        state->_demanded =
+            static_cast<uint8_t>(state->_input_cmd) - CMD_DEMAND_SPADES;
+        state->_pending_cmd = CMD_NEXT_PLAYER;
         break;
     default: {
         Player *p = &state->_players[state->_cur_player];
