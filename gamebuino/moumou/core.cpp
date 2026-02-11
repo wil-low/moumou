@@ -230,27 +230,15 @@ uint8_t opponent_draws(Card *p_card) {
     return 0;
 }
 
-void recycle_deck(GameState *state) {
-    state->_deck._count = state->_table._count - 3;
-    for (uint8_t i = 0; i < state->_deck._count; ++i) {
-        state->_deck._items[i] = state->_table._items[i];
+void check_recycle_deck(GameState *state, uint8_t *cards_to_draw) {
+    if (state->_deck._count <= cards_to_draw) {
+        if (state->_table._count < 4) {
+            *cards_to_draw = max(0, state->_deck._count);
+        } else {
+            state->_table.removeCards(state->_table._count - 4, &state->_deck);
+            state->_deck.shuffle();
+        }
     }
-    for (uint8_t i = 0; i < 3; ++i) {
-        state->_table._items[i] = state->_table._items[state->_deck._count + i];
-    }
-    state->_table._count = 3;
-}
-
-Card deal(GameState *state) {
-    if (state->_deck._count > 0) {
-        int idx = rand() % state->_deck._count;
-        state->_deck._count--;
-        Card tmp = state->_deck._items[idx];
-        state->_deck._items[idx] = state->_deck._items[state->_deck._count];
-        return tmp;
-    }
-    recycle_deck(state);
-    return deal(state);
 }
 
 void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit) {

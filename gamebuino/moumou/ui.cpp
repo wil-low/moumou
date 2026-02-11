@@ -540,6 +540,8 @@ void UI::getCursorDestination(byte &x, byte &y, bool &flipped) {
 }
 
 void UI::startDraw() {
+    check_recycle_deck(&gameState, 1);
+
     _cardAnimationCount = 0;
     for (int i = 0; i < 1; i++)
         animateMove(&gameState._deck, 0,
@@ -547,6 +549,7 @@ void UI::startDraw() {
                     gameState._players[gameState._cur_player]._hand._count);
     _dealingCount = _cardAnimationCount;
     _cardAnimationCount = 0;
+
     _mode = MODE_ANIMATE;
     playSoundA();
 }
@@ -572,7 +575,6 @@ void UI::startPlayCard(uint8_t idx) {
 }
 
 void UI::startPass() {
-    _cardAnimationCount = 0;
     byte count = gameState._played._count;
     Pile &opponent_p =
         gameState._players[PLAYER_COUNT - 1 - gameState._cur_player]._hand;
@@ -581,6 +583,9 @@ void UI::startPass() {
     for (int i = 0; i < count; i++)
         draws += opponent_draws(&gameState._played._items[i]);
 
+    check_recycle_deck(&gameState, draws);
+
+    _cardAnimationCount = 0;
     for (int i = 0; i < count; i++)
         animateMove(&gameState._played, 0, &gameState._table,
                     gameState._table._count + i);

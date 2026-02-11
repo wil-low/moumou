@@ -77,8 +77,7 @@ class GameState {
 class UI;
 
 void process_input(GameState *state, UI *ui);
-void recycle_deck(GameState *state);
-Card deal(GameState *state);
+void check_recycle_deck(GameState *state, uint8_t* cards_to_draw);
 bool find_valid_moves(GameState *state, uint8_t player_idx);
 void process_command(GameState *state, UI *ui);
 uint8_t opponent_draws(Card *p_card);
