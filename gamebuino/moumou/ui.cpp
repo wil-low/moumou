@@ -3,12 +3,18 @@
 #include "config.h"
 #include <Gamebuino.h>
 
+// uncomment this line to show debug prints instead of scores
+// #define DEBUG_PRINTS
+
 extern Gamebuino gb;
 extern GameState gameState;
 
 void UI::drawBoard() {
-    // Debug prints
+
     gb.display.setColor(BLACK);
+
+#ifdef DEBUG_PRINTS
+    // Debug prints
     drawNumberRight(gameState._cur_player, 72, 2);
     drawNumberRight(gameState._valid_moves._flags, 72, 10);
 
@@ -19,13 +25,14 @@ void UI::drawBoard() {
     debug(CardValue(gameState._last_card), CardSuit(gameState._last_card));
     // drawNumberRight(gameState._fvm_calls, 83, 33);
     // drawNumberRight(_mode, 83, 41);
+#else
+    // Scores
+    drawNumberRight(gameState._players[1]._score, 83, 17);
+    drawNumberRight(gameState._players[0]._score, 83, 25);
+#endif
 
     // Stock
     drawDeck(&gameState._deck, false);
-
-    // Scores
-    //  drawNumberRight(gameState._players[1]._score, 83, 17);
-    //  drawNumberRight(gameState._players[0]._score, 83, 25);
 
     if (gameState._players[1]._hand._count != 0) {
         drawCard(gameState._players[1]._hand.x, gameState._players[1]._hand.y,
