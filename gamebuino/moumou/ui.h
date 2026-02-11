@@ -4,15 +4,6 @@
 #include "core.h"
 #include <Gamebuino.h>
 
-enum GameMode {
-    initialDealing,
-    selecting,
-    moving,
-    resolving,
-    passing,
-    gameOver
-};
-
 // Stock: where you draw cards from
 // Table: table cards
 // Played: cards played by human
@@ -38,7 +29,7 @@ struct CardBounce {
 class UI {
   public:
     // State of the game.
-    GameMode _mode = selecting;
+    GameMode _mode = MODE_PLAYER_MOVE;
 
     // how many cards must be animated in dealing mode
     byte _dealingCount;
@@ -66,6 +57,10 @@ class UI {
     void showTitle();
     void pause();
     void animateMove(Pile *src, byte srcIdx, Pile *dst, byte dstIdx);
+
+    void startDraw();
+    void startPlayCard(uint8_t idx);
+    void startPass();
 
     void drawBoard();
     void drawDeck(Pile *deck, bool showCount);

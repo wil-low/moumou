@@ -6,22 +6,23 @@ uint8_t ai_move(GameState *state) {
     switch (state->_players[state->_cur_player]._level) {
     case Level_2:
         if (state->_valid_moves._count)
-            return rand() % state->_valid_moves._count;
-        if (state->_valid_moves._draw)
+            return state->_valid_moves
+                ._items[rand() % state->_valid_moves._count];
+        if (state->_valid_moves._flags & FLAG_DRAW)
             return CMD_DRAW;
-        if (state->_valid_moves._pass)
+        if (state->_valid_moves._flags & FLAG_PASS)
             return CMD_PASS;
         break;
-    default: // Level_1
+    case Level_1:
         if (state->_valid_moves._count)
-            return 0;
-        if (state->_valid_moves._pass)
+            return state->_valid_moves._items[0];
+        if (state->_valid_moves._flags & FLAG_PASS)
             return CMD_PASS;
-        if (state->_valid_moves._draw)
+        if (state->_valid_moves._flags & FLAG_DRAW)
             return CMD_DRAW;
         break;
     }
-    return 0; // never reach here
+    return CMD_NONE; // Human
 }
 
 Suit ai_demand_suit(GameState *state) {
@@ -38,9 +39,9 @@ Suit ai_demand_suit(GameState *state) {
                 max_idx = i;
         }
         return (Suit)max_idx;
-    } break;
-    default: // Level_1
+    }
+    case Level_1:
         return rand() % SuitCount;
     }
-    return (Suit)Undefined; // never reach here
+    return (Suit)Undefined; // Human
 }

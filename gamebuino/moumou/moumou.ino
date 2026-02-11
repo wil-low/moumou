@@ -2,6 +2,7 @@
 #include <Gamebuino.h>
 #include <SPI.h>
 
+#include "ai.h"
 #include "core.h"
 #include "ui.h"
 
@@ -45,12 +46,37 @@ void setup() {
     gameState._players[0]._score = 0;
     gameState._players[1]._score = 0;
 
+    gameState._players[0]._level = PLAYER0_LEVEL;
+
     ui.showTitle();
 }
 
 void loop() {
     // Main loop.
     if (gb.update()) {
+        if (ui._mode != MODE_ANIMATE && gameState._pending_cmd != CMD_NONE) {
+            gameState._input_cmd = gameState._pending_cmd;
+            gameState._pending_cmd = CMD_NONE;
+            switch (gameState._input_cmd) {
+            case CMD_PASS:
+                ui.startPass();
+                break;
+            case CMD_DRAW:
+                ui.startDraw();
+                break;
+            case CMD_NEXT_PLAYER:
+                gameState._fvm_calls = 0;
+                gameState._cur_player =
+                    (gameState._cur_player + 1) % PLAYER_COUNT;
+                find_valid_moves(&gameState, gameState._cur_player);
+                gameState._pending_cmd = ai_move(&gameState);
+                ui._mode = MODE_PLAYER_MOVE;
+                break;
+            default:
+                ui.startPlayCard(gameState._input_cmd);
+                break;
+            }
+        }
         // Exit to title whenever C is pressed.
         if (gb.buttons.pressed(BTN_C)) {
             ui.pause();
@@ -59,29 +85,25 @@ void loop() {
 
         // Handle key presses for various modes.
         switch (ui._mode) {
-        case selecting:
+        case MODE_PLAYER_MOVE:
             handleSelectingButtons();
             break;
         }
 
         // Draw the board.
-        if (ui._mode != gameOver) {
+        if (ui._mode != MODE_ROUND_OVER) {
             ui.drawBoard();
-            // debug(_cardAnimationCount, _dealingCount);
-            ui.debug(gameState._last_card.getSuit(),
-                     gameState._last_card.getValue() + 6);
         }
 
         // Draw other things based on the current state of the game.
         switch (ui._mode) {
-        case initialDealing:
-        case moving:
+        case MODE_ANIMATE:
             ui.drawDealing();
             break;
-        case selecting:
+        case MODE_PLAYER_MOVE:
             ui.drawCursor();
             break;
-        case gameOver:
+        case MODE_ROUND_OVER:
             ui.drawWonGame();
             break;
         }
@@ -129,16 +151,16 @@ void handleSelectingButtons() {
                            gameState._players[1]._hand._count);
             ui._dealingCount = ui._cardAnimationCount;
             ui._cardAnimationCount = 0;
-            ui._mode = moving;
+            ui._mode = MODE_ANIMATE;
             // playSoundA();
         }
     } else if (gb.buttons.pressed(BTN_A)) {
 
         switch (ui._activeLocation) {
         case stock:
-            if (gameState._valid_moves._draw) {
+            if (gameState._valid_moves._flags & FLAG_DRAW) {
                 if (gameState._deck._count != 0) {
-                    startDraw();
+                    gameState._pending_cmd = CMD_DRAW;
                 } else {
                     /*while (talonDeck._count != 0) {
                         drawAndFlip(&talonDeck, &gameState._deck);
@@ -155,62 +177,20 @@ void handleSelectingButtons() {
                 uint8_t idx = ui._cardIndex + p.scrollOffset;
                 for (uint8_t i = 0; i < gameState._valid_moves._count; ++i) {
                     if (idx == gameState._valid_moves._items[i]) {
-                        startPlayCard(p, idx);
+                        gameState._pending_cmd = idx;
                         break;
                     }
                 }
             }
         } break;
         case played:
-            if (gameState._valid_moves._pass)
-                startPass();
+            if (gameState._valid_moves._flags & FLAG_PASS)
+                gameState._pending_cmd = CMD_PASS;
             break;
         }
     }
     if (originalLocation != ui._activeLocation)
         ui._cardIndex = 0;
-}
-
-void startDraw() {
-    ui._cardAnimationCount = 0;
-    for (int i = 0; i < 1; i++)
-        ui.animateMove(&gameState._deck, 0,
-                       &gameState._players[gameState._cur_player]._hand,
-                       gameState._players[gameState._cur_player]._hand._count);
-    ui._dealingCount = ui._cardAnimationCount;
-    ui._cardAnimationCount = 0;
-    ui._mode = moving;
-    gameState._input_cmd = CMD_DRAW;
-    ui.playSoundA();
-}
-
-void startPlayCard(Pile &p, uint8_t idx) {
-    ui._cardAnimationCount = 0;
-    ui.animateMove(&p, idx, &gameState._played, gameState._played._count);
-    ui._dealingCount = ui._cardAnimationCount;
-    ui._cardAnimationCount = 0;
-    if (p._count - p.scrollOffset >= p.maxVisibleCards) {
-    } else if (p.scrollOffset > 0) {
-        p.scrollOffset--;
-    } else if (ui._cardIndex == p._count && ui._cardIndex > 0) {
-        ui._cardIndex--;
-    }
-    ui._mode = moving;
-    gameState._input_cmd = idx;
-    ui.playSoundA();
-}
-
-void startPass() {
-    ui._cardAnimationCount = 0;
-    byte count = gameState._played._count;
-    for (int i = 0; i < count; i++)
-        ui.animateMove(&gameState._played, 0, &gameState._table,
-                       gameState._table._count + i);
-    ui._dealingCount = ui._cardAnimationCount;
-    ui._cardAnimationCount = 0;
-    ui._mode = moving;
-    gameState._input_cmd = CMD_PASS;
-    ui.playSoundA();
 }
 
 void checkWonGame() {
@@ -282,7 +262,8 @@ int savePile(int address, Pile *pile) {
     EEPROM.put(address, pile->_count);
     for (int i = 0; i < pile->getMaxCards(); i++) {
         if (pile->_count > i) {
-            EEPROM.put(address + i + 1, pile->getCard(pile->_count - i - 1));
+            EEPROM.put(address + i + 1, pile->getCard(pile->_count - i -
+1));
         }
     }
     return 1 + pile->getMaxCards();

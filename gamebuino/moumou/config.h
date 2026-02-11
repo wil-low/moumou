@@ -6,12 +6,13 @@
 #define MAX_CARDS_IN_HAND 16
 
 #define PLAYER0_LEVEL Human
-#define PLAYER1_LEVEL Level_2
+#define PLAYER1_LEVEL Level_1
 
 #define BOT_CARDS_VISIBLE 0
 #define RENDER_BOT_MOVES 0
 
 // #define RANDOM_SEED 45
-#define RANDOM_SEED 48
+#define RANDOM_SEED 50
+// #define RANDOM_SEED 0
 
 #endif
