@@ -29,6 +29,7 @@ typedef enum {
     CMD_DEMAND_HEARTS = 105,
     CMD_DEMAND_DIAMOND = 106,
     CMD_DEMAND_CLUBS = 107,
+    CMD_SELECT_MOVE = 108,
     CMD_NONE = 255
 } Command;
 
@@ -39,9 +40,7 @@ const uint8_t FLAG_RECYCLE_DECK = 1 << 3;
 const uint8_t FLAG_DEMAND_SUIT = 1 << 4;
 const uint8_t FLAG_MOUMOU = 1 << 5;
 const uint8_t FLAG_EMPTY_HAND = 1 << 6;
-
-const uint8_t PLAY_OK = 0;
-const uint8_t PLAY_OPPONENT_SKIPS = 1;
+const uint8_t FLAG_OPPONENT_SKIPS = 1 << 7;
 
 class Player {
   public:
@@ -78,12 +77,9 @@ class UI;
 
 void process_input(GameState *state, UI *ui);
 void recycle_deck(GameState *state);
-void move_played_to_table(GameState *state);
 Card deal(GameState *state);
-bool draw(GameState *state, uint8_t player_idx, uint8_t count);
 bool find_valid_moves(GameState *state, uint8_t player_idx);
-void animation_complete(GameState *gameState);
-uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx);
+void process_command(GameState *state, UI *ui);
 uint8_t opponent_draws(Card *p_card);
 void new_round(GameState *state, UI *ui);
 uint16_t hand_score(GameState *state, uint8_t player_idx);

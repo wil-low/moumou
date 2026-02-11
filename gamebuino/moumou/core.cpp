@@ -13,25 +13,27 @@ void new_round(GameState *state, UI *ui) {
 
     state->_players[0]._hand.empty();
     state->_players[1]._hand.empty();
-    state->_cur_player = 0;
+    state->_cur_player = 1;
     state->_turn = 0;
     state->_demanded = Undefined;
     state->_valid_moves._flags = FLAG_DRAW;
     state->_last_card = Card();
     state->_moumou_counter = 0;
-    state->_pending_cmd = CMD_NONE;
+    state->_pending_cmd = CMD_NEXT_PLAYER;
     state->_fvm_calls = 0;
 
     state->_played.empty();
     state->_table.empty();
 
-    state->_players[1]._level = PLAYER1_LEVEL; // ui->_botLevel;
+    state->_players[1]._level = PLAYER1_LEVEL;
 
     // Initialize the data structure to deal out the initial board.
     ui->_cardAnimationCount = 0;
     for (int i = 0; i < INITIAL_HAND; i++)
         for (int p = 0; p < 2; p++)
             ui->animateMove(&state->_deck, 0, &state->_players[p]._hand, i);
+
+    state->_last_card = state->_deck._items[0];
     ui->animateMove(&state->_deck, 0, &state->_table, 0);
 
     ui->_dealingCount = ui->_cardAnimationCount;
@@ -82,17 +84,92 @@ bool find_valid_moves(GameState *state, uint8_t player_idx) {
     return true;
 }
 
-void animation_complete(GameState *state) {
-    state->_input_cmd = CMD_NONE;
-    find_valid_moves(state, state->_cur_player);
-    state->_pending_cmd = ai_move(state);
-    //  process_input(&state, this);
-}
+void process_command(GameState *state, UI *ui) {
+    state->_input_cmd = state->_pending_cmd;
+    state->_pending_cmd = CMD_NONE;
+    switch (state->_input_cmd) {
+    case CMD_PASS:
+        ui->startPass();
+        state->_pending_cmd = CMD_NEXT_PLAYER;
+        if (state->_played._count && CardValue(state->_last_card) == Jack) {
+            state->_demanded = Undefined;
+            // state->_demanded = input_suit(state);
+        }
+        state->_valid_moves._flags &= ~FLAG_PASS;
+        state->_valid_moves._flags &= ~FLAG_RESTRICT_VALUE;
+        break;
+    case CMD_DRAW:
+        ui->startDraw();
+        state->_pending_cmd = CMD_SELECT_MOVE;
+        state->_valid_moves._flags &= ~FLAG_DRAW;
+        break;
+    case CMD_NEXT_PLAYER:
+        state->_cur_player = (state->_cur_player + 1) % PLAYER_COUNT;
+        state->_pending_cmd = CMD_SELECT_MOVE;
+        state->_valid_moves._flags |= FLAG_DRAW;
+        // ui->_mode = MODE_ANIMATE;
+        break;
+    case CMD_SELECT_MOVE:
+        find_valid_moves(state, state->_cur_player);
+        state->_pending_cmd = ai_move(state);
+        break;
+    default: {
+        Player *p = &state->_players[state->_cur_player];
+        Card p_card = p->_hand._items[state->_input_cmd];
+        ui->startPlayCard(state->_input_cmd);
+        // apply effects
+        state->_valid_moves._flags &= ~FLAG_OPPONENT_SKIPS;
+        if (CardValue(p_card) == Eight) {
+            state->_valid_moves._flags |= FLAG_OPPONENT_SKIPS;
+        }
+        if (CardValue(p_card) == Ace) {
+            state->_valid_moves._flags |= FLAG_OPPONENT_SKIPS;
+        }
+        if (CardSuit(p_card) == Clubs && CardValue(p_card) == King) {
+            state->_valid_moves._flags |= FLAG_OPPONENT_SKIPS;
+        }
+        // check moumou
+        if (CardValue(p_card) == CardValue(state->_last_card)) {
+            ++state->_moumou_counter;
+            if (state->_moumou_counter == SuitCount)
+                state->_valid_moves._flags |= FLAG_MOUMOU;
+        } else
+            state->_moumou_counter = 1;
 
+        if (CardValue(p_card) == Six ||
+            (state->_valid_moves._flags & FLAG_OPPONENT_SKIPS))
+            state->_valid_moves._flags |= FLAG_DRAW;
+        else
+            state->_valid_moves._flags &= ~FLAG_DRAW;
+        if (CardValue(p_card) != Six)
+            state->_valid_moves._flags |= FLAG_PASS;
+        else
+            state->_valid_moves._flags &= ~FLAG_PASS;
+
+        state->_last_card = p_card;
+
+        state->_demanded = Undefined;
+
+        if (!(state->_valid_moves._flags & FLAG_OPPONENT_SKIPS) &&
+            CardValue(state->_last_card) != Six)
+            state->_valid_moves._flags |= FLAG_RESTRICT_VALUE;
+        else
+            state->_valid_moves._flags &= ~FLAG_RESTRICT_VALUE;
+
+        if (CardValue(state->_last_card) != Six)
+            state->_valid_moves._flags |= FLAG_PASS;
+        else
+            state->_valid_moves._flags &= ~FLAG_PASS;
+
+        state->_pending_cmd = CMD_SELECT_MOVE;
+    } break;
+    }
+}
+/*
 void process_input(GameState *state, UI *ui) {
     if (state->_input_cmd != CMD_NONE) {
         if (state->_input_cmd == CMD_DRAW) {
-            state->_valid_moves._flags &= ~FLAG_DRAW;
+            + state->_valid_moves._flags &= ~FLAG_DRAW;
         } else if (state->_input_cmd == CMD_PASS) {
         } else {
             uint8_t result =
@@ -118,12 +195,10 @@ void process_input(GameState *state, UI *ui) {
             state->_valid_moves._flags &= ~FLAG_PASS;
 
         if (state->_input_cmd == CMD_PASS) {
-            if (/*state->_played._count &&*/ CardValue(state->_last_card) ==
+            if (state->_played._count && CardValue(state->_last_card) ==
                 Jack) {
                 state->_demanded = Undefined;
                 // state->_demanded = input_suit(state);
-                //  printf("Player #%d demands %c\n", state->_cur_player,
-                //         SUITS[state->_demanded]);
             }
             // move_played_to_table(state);
             state->_valid_moves._flags &= ~FLAG_PASS;
@@ -135,6 +210,7 @@ void process_input(GameState *state, UI *ui) {
         // ui->turnLoop();
     }
 }
+*/
 
 uint8_t opponent_draws(Card *p_card) {
     if (CardValue(*p_card) == Eight)
@@ -144,40 +220,6 @@ uint8_t opponent_draws(Card *p_card) {
     if (CardSuit(*p_card) == Clubs && CardValue(*p_card) == King)
         return 5;
     return 0;
-}
-
-uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx) {
-    Player *p = &state->_players[player_idx];
-    Card *p_card = &p->_hand._items[card_idx];
-    // apply effects
-    uint8_t result = PLAY_OK;
-    if (CardValue(*p_card) == Eight) {
-        result = PLAY_OPPONENT_SKIPS;
-    }
-    if (CardValue(*p_card) == Ace) {
-        result = PLAY_OPPONENT_SKIPS;
-    }
-    if (CardSuit(*p_card) == Clubs && CardValue(*p_card) == King) {
-        result = PLAY_OPPONENT_SKIPS;
-    }
-    // check moumou
-    if (CardValue(*p_card) == CardValue(state->_last_card)) {
-        ++state->_moumou_counter;
-        if (state->_moumou_counter == SuitCount)
-            state->_valid_moves._flags |= FLAG_MOUMOU;
-    } else
-        state->_moumou_counter = 1;
-
-    if (CardValue(*p_card) == Six || result == PLAY_OPPONENT_SKIPS)
-        state->_valid_moves._flags |= FLAG_DRAW;
-    else
-        state->_valid_moves._flags &= ~FLAG_DRAW;
-    if (CardValue(*p_card) != Six)
-        state->_valid_moves._flags |= FLAG_PASS;
-    else
-        state->_valid_moves._flags &= ~FLAG_PASS;
-
-    return result;
 }
 
 void recycle_deck(GameState *state) {
@@ -191,14 +233,6 @@ void recycle_deck(GameState *state) {
     state->_table._count = 3;
 }
 
-void move_played_to_table(GameState *state) {
-    for (uint8_t i = 0; i < state->_played._count; ++i) {
-        state->_table._items[state->_table._count++] = state->_played._items[i];
-    }
-    state->_played._count = 0;
-    // state->_valid_moves._flags |= FLAG_DRAW;
-}
-
 Card deal(GameState *state) {
     if (state->_deck._count > 0) {
         int idx = rand() % state->_deck._count;
@@ -209,18 +243,6 @@ Card deal(GameState *state) {
     }
     recycle_deck(state);
     return deal(state);
-}
-
-bool draw(GameState *state, uint8_t player_idx, uint8_t count) {
-    Player *p = &state->_players[player_idx];
-    for (uint8_t i = 0; i < count; i++) {
-        if (p->_hand._count < MAX_CARDS_IN_HAND) {
-            Card card = deal(state);
-            p->_hand._items[p->_hand._count] = card;
-            p->_hand._count++;
-        }
-    }
-    return true;
 }
 
 void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit) {

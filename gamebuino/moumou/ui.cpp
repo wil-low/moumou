@@ -6,6 +6,89 @@
 #define PSEUDO_GRAY GRAY
 // #define PSEUDO_GRAY BLACK
 
+extern Gamebuino gb;
+extern GameState gameState;
+
+void UI::drawBoard() {
+    // Debug prints
+    gb.display.setColor(BLACK);
+    drawNumberRight(gameState._cur_player, 72, 2);
+    drawNumberRight(gameState._valid_moves._flags, 72, 10);
+
+    drawNumberRight(gameState._valid_moves._count, 83, 17);
+    // drawNumberRight(gameState._pending_cmd, 83, 17);
+    drawNumberRight(gameState._input_cmd, 83, 25);
+
+    debug(CardValue(gameState._last_card), CardSuit(gameState._last_card));
+    // drawNumberRight(gameState._fvm_calls, 83, 33);
+    // drawNumberRight(_mode, 83, 41);
+
+    // Stock
+    drawDeck(&gameState._deck, false);
+
+    // Scores
+    //  drawNumberRight(gameState._players[1]._score, 83, 17);
+    //  drawNumberRight(gameState._players[0]._score, 83, 25);
+
+    if (gameState._players[1]._hand._count != 0) {
+        drawCard(gameState._players[1]._hand.x, gameState._players[1]._hand.y,
+                 Card(Undefined, Spades, true));
+        // drawNumberRight(gameState._players[1]._hand._count, 72, 2);
+    }
+
+    Player &p = gameState._players[0]; // gameState._cur_player];
+
+    drawDeck(&p._hand, false);
+    if (p._hand.scrollOffset > 0)
+        drawLeftArrow(0, 38);
+    if (p._hand._count - p._hand.scrollOffset > p._hand.maxVisibleCards)
+        drawRightArrow(81, 38);
+
+    drawDeck(&gameState._played, false);
+    drawDeck(&gameState._table, false);
+
+    if (gameState._demanded != Undefined)
+        drawSuit(63, 4, gameState._demanded);
+
+    if (_mode != MODE_ANIMATE) {
+        uint8_t idx = 0;
+        for (uint8_t i = 0; i < p._hand._count; ++i) {
+            if (idx < gameState._valid_moves._count &&
+                i == gameState._valid_moves._items[idx]) {
+                drawAllowedMove(p._hand.x + 11 * i, p._hand.y);
+                idx++;
+            }
+        }
+        if (gameState._valid_moves._flags & FLAG_DRAW)
+            drawAllowedMove(gameState._deck.x, gameState._deck.y);
+        if (gameState._valid_moves._flags & FLAG_PASS)
+            drawAllowedMove(gameState._played.x, gameState._played.y);
+    }
+}
+
+void UI::drawDealing() {
+    if (_cardAnimationCount < _dealingCount && gb.frameCount % 4 == 0) {
+        _cardAnimationCount++;
+        playSoundA();
+    }
+    bool doneDealing = _cardAnimationCount == _dealingCount;
+    for (int i = 0; i < _cardAnimationCount; i++) {
+        auto ca = &_cardAnimations[i];
+        if (ca->x != ca->destX || ca->y != ca->destY) {
+            doneDealing = false;
+            drawCard(ca->x, ca->y, ca->card);
+            ca->x = updatePosition(ca->x, ca->destX);
+            ca->y = updatePosition(ca->y, ca->destY);
+            if (ca->x == ca->destX && ca->y == ca->destY)
+                ca->destination->addCard(ca->card);
+        }
+    }
+    if (doneDealing) {
+        _dealingCount = 0;
+        _mode = MODE_PLAYER_MOVE;
+    }
+}
+
 const char easyOption[] PROGMEM = "Bot level 1";
 const char hardOption[] PROGMEM = "Bot level 2";
 const char statisticsOption[] PROGMEM = "Game statistics";
@@ -19,8 +102,6 @@ const char *const pauseMenu[5] PROGMEM = {resumeOption, quitOption,
                                           statisticsOption, saveOption};
 
 bool continueGame;
-
-extern GameState gameState;
 
 const byte title[] PROGMEM = {
     64,   36,   0x0,  0x0,  0x80, 0x0,  0x1,  0x24, 0x0,  0x0,  0x0,  0x84,
@@ -49,8 +130,6 @@ const byte title[] PROGMEM = {
     0xCC, 0x92, 0x22, 0x48, 0x60, 0x0,  0x0,  0x78, 0x78, 0x93, 0x9E, 0x48,
     0x3C, 0x0,
 };
-
-extern Gamebuino gb;
 
 void UI::showTitle() {
 start:
@@ -131,59 +210,6 @@ void UI::animateMove(Pile *src, byte srcIdx, Pile *dst, byte dstIdx) {
 
 const uint16_t patternA[] PROGMEM = {0x0045, 0x0118, 0x0000};
 const uint16_t patternB[] PROGMEM = {0x0045, 0x0108, 0x0000};
-
-void UI::drawBoard() {
-    // Stock
-    drawDeck(&gameState._deck, false);
-
-    if (gameState._valid_moves._flags & FLAG_DRAW)
-        drawAllowedMove(gameState._deck.x, gameState._deck.y);
-
-    // Scores
-    drawNumberRight(gameState._pending_cmd, 83, 17);
-    drawNumberRight(gameState._input_cmd, 83, 25);
-    //  drawNumberRight(gameState._players[1]._score, 83, 17);
-    //  drawNumberRight(gameState._players[0]._score, 83, 25);
-
-    if (gameState._players[1]._hand._count != 0) {
-        drawCard(gameState._players[1]._hand.x, gameState._players[1]._hand.y,
-                 Card(Undefined, Spades, true));
-        gb.display.setColor(BLACK);
-        drawNumberRight(gameState._cur_player, 72, 2);
-        drawNumberRight(gameState._valid_moves._flags, 72, 10);
-        // drawNumberRight(gameState._players[1]._hand._count, 72, 2);
-    }
-
-    drawDeck(&gameState._players[0]._hand, false);
-    if (gameState._players[0]._hand.scrollOffset > 0)
-        drawLeftArrow(0, 38);
-    if (gameState._players[0]._hand._count -
-            gameState._players[0]._hand.scrollOffset >
-        gameState._players[0]._hand.maxVisibleCards)
-        drawRightArrow(81, 38);
-
-    uint8_t idx = 0;
-    for (uint8_t i = 0; i < gameState._players[0]._hand._count; ++i) {
-        if (idx < gameState._valid_moves._count &&
-            i == gameState._valid_moves._items[idx]) {
-            drawAllowedMove(gameState._players[0]._hand.x + 11 * i,
-                            gameState._players[0]._hand.y);
-            idx++;
-        }
-    }
-
-    drawDeck(&gameState._played, false);
-    if (gameState._played._count && (gameState._valid_moves._flags & FLAG_PASS))
-        drawAllowedMove(gameState._played.x, gameState._played.y);
-
-    drawDeck(&gameState._table, false);
-
-    if (gameState._demanded != Undefined)
-        drawSuit(63, 4, gameState._demanded);
-
-    // debug(_cardAnimationCount, _dealingCount);
-    debug(gameState._fvm_calls, _mode);
-}
 
 void UI::drawDeck(Pile *deck, bool showCount) {
     for (int i = 0; i < deck->maxVisibleCards; ++i) {
@@ -472,34 +498,6 @@ void UI::getCursorDestination(byte &x, byte &y, bool &flipped) {
     }
 }
 
-void UI::drawDealing() {
-    if (_cardAnimationCount < _dealingCount && gb.frameCount % 4 == 0) {
-        _cardAnimationCount++;
-        playSoundA();
-    }
-    bool doneDealing = _cardAnimationCount == _dealingCount;
-    for (int i = 0; i < _cardAnimationCount; i++) {
-        auto ca = &_cardAnimations[i];
-        if (ca->x != ca->destX || ca->y != ca->destY) {
-            doneDealing = false;
-            drawCard(ca->x, ca->y, ca->card);
-            ca->x = updatePosition(ca->x, ca->destX);
-            ca->y = updatePosition(ca->y, ca->destY);
-            if (ca->x == ca->destX && ca->y == ca->destY) {
-                ca->destination->addCard(ca->card);
-                if (ca->destination == &gameState._played ||
-                    ca->destination == &gameState._table)
-                    gameState._last_card = ca->card;
-            }
-        }
-    }
-    if (doneDealing) {
-        _dealingCount = 0;
-        _mode = MODE_PLAYER_MOVE;
-        animation_complete(&gameState);
-    }
-}
-
 void UI::startDraw() {
     _cardAnimationCount = 0;
     for (int i = 0; i < 1; i++)
@@ -516,7 +514,6 @@ void UI::startPlayCard(uint8_t idx) {
     gameState._valid_moves._count = 0;
 
     Pile &p = gameState._players[gameState._cur_player]._hand;
-    auto result = play_card(&gameState, gameState._cur_player, idx);
 
     _cardAnimationCount = 0;
     animateMove(&p, idx, &gameState._played, gameState._played._count);
@@ -551,7 +548,6 @@ void UI::startPass() {
     _dealingCount = _cardAnimationCount;
     _cardAnimationCount = 0;
 
-    gameState._pending_cmd = CMD_NEXT_PLAYER;
     _mode = MODE_ANIMATE;
     playSoundA();
 }

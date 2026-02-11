@@ -55,28 +55,9 @@ void loop() {
     // Main loop.
     if (gb.update()) {
         if (ui._mode != MODE_ANIMATE && gameState._pending_cmd != CMD_NONE) {
-            gameState._input_cmd = gameState._pending_cmd;
-            gameState._pending_cmd = CMD_NONE;
-            switch (gameState._input_cmd) {
-            case CMD_PASS:
-                ui.startPass();
-                break;
-            case CMD_DRAW:
-                ui.startDraw();
-                break;
-            case CMD_NEXT_PLAYER:
-                gameState._fvm_calls = 0;
-                gameState._cur_player =
-                    (gameState._cur_player + 1) % PLAYER_COUNT;
-                find_valid_moves(&gameState, gameState._cur_player);
-                gameState._pending_cmd = ai_move(&gameState);
-                ui._mode = MODE_PLAYER_MOVE;
-                break;
-            default:
-                ui.startPlayCard(gameState._input_cmd);
-                break;
-            }
+            process_command(&gameState, &ui);
         }
+
         // Exit to title whenever C is pressed.
         if (gb.buttons.pressed(BTN_C)) {
             ui.pause();
@@ -101,7 +82,8 @@ void loop() {
             ui.drawDealing();
             break;
         case MODE_PLAYER_MOVE:
-            ui.drawCursor();
+            if (gameState._players[gameState._cur_player]._level == Human)
+                ui.drawCursor();
             break;
         case MODE_ROUND_OVER:
             ui.drawWonGame();

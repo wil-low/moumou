@@ -11,7 +11,6 @@
 #define BOT_CARDS_VISIBLE 0
 #define RENDER_BOT_MOVES 0
 
-// #define RANDOM_SEED 45
 #define RANDOM_SEED 50
 // #define RANDOM_SEED 0
 
