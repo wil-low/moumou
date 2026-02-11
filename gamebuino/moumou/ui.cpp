@@ -3,9 +3,6 @@
 #include "config.h"
 #include <Gamebuino.h>
 
-#define PSEUDO_GRAY GRAY
-// #define PSEUDO_GRAY BLACK
-
 extern Gamebuino gb;
 extern GameState gameState;
 
@@ -70,7 +67,7 @@ void UI::drawBoard() {
     if (gameState._demanded != Undefined) {
         gb.display.setColor(
             (gameState._demanded == Hearts || gameState._demanded == Diamonds)
-                ? PSEUDO_GRAY
+                ? GRAY
                 : BLACK);
         drawSuit(63, 4, gameState._demanded);
     }
@@ -245,8 +242,7 @@ void UI::drawSuitSelector() {
             gb.display.drawFastHLine(x + 1, Y + 12, 9);
             gb.display.drawFastVLine(x, Y + 1, 11);
         }
-        gb.display.setColor((i == Hearts || i == Diamonds) ? PSEUDO_GRAY
-                                                           : BLACK);
+        gb.display.setColor((i == Hearts || i == Diamonds) ? GRAY : BLACK);
         drawSuit(x + 3, Y + 4, i);
     }
 }
@@ -274,7 +270,7 @@ void UI::drawCard(byte x, byte y, Card card) {
     // Fill
     byte fill = WHITE;
     if (card.isFaceDown())
-        fill = PSEUDO_GRAY;
+        fill = GRAY;
     gb.display.setColor(fill);
     gb.display.fillRect(x + 1, y + 1, 8, 12);
 
@@ -717,7 +713,7 @@ void UI::drawCursor(byte x, byte y, bool flipped) {
             gb.display.setColor(WHITE);
             gb.display.drawPixel(x, y + 3);
             gb.display.fillRect(x - 11 - extraWidth, y, 11 + extraWidth, 7);
-            gb.display.setColor(card.isRed() ? PSEUDO_GRAY : BLACK);
+            gb.display.setColor(card.isRed() ? GRAY : BLACK);
             drawValue(x - 10, y + 1, card.getValue());
             drawSuit(x - 6, y + 1, card.getSuit());
         }
@@ -745,7 +741,7 @@ void UI::drawCursor(byte x, byte y, bool flipped) {
             gb.display.setColor(WHITE);
             gb.display.drawPixel(x + 6, y + 3);
             gb.display.fillRect(x + 7, y, 11 + extraWidth, 7);
-            gb.display.setColor(card.isRed() ? PSEUDO_GRAY : BLACK);
+            gb.display.setColor(card.isRed() ? GRAY : BLACK);
             drawValue(x + 8 + extraWidth, y + 1, card.getValue());
             drawSuit(x + 12 + extraWidth, y + 1, card.getSuit());
         }
