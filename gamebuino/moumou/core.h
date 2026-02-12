@@ -31,6 +31,7 @@ typedef enum {
     CMD_DEMAND_CLUBS = 107,
     CMD_SELECT_MOVE = 108,
     CMD_SELECT_SUIT = 109,
+    CMD_ROUND_OVER = 110,
     CMD_NONE = 255
 } Command;
 
@@ -77,7 +78,7 @@ class GameState {
 class UI;
 
 void process_input(GameState *state, UI *ui);
-void check_recycle_deck(GameState *state, uint8_t* cards_to_draw);
+void check_recycle_deck(GameState *state, uint8_t *cards_to_draw);
 bool find_valid_moves(GameState *state, uint8_t player_idx);
 void process_command(GameState *state, UI *ui);
 uint8_t opponent_draws(Card *p_card);

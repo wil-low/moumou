@@ -34,15 +34,6 @@ void setup() {
     gameState._played.maxVisibleCards = 6;
     gameState._played.scrollToLast = true;
 
-    gameState._players[0]._hand.x = 4;
-    gameState._players[0]._hand.y = 33;
-    gameState._players[0]._hand.maxVisibleCards = 7;
-
-    gameState._players[1]._hand.x = 73;
-    gameState._players[1]._hand.y = 1;
-    gameState._players[1]._hand.maxVisibleCards = 1;
-    gameState._players[1]._hand.faceUp = false;
-
     gameState._players[0]._score = 0;
     gameState._players[1]._score = 0;
 
@@ -72,12 +63,16 @@ void loop() {
         case MODE_SELECT_SUIT:
             handleSuitSelector();
             break;
+        case MODE_ROUND_OVER:
+            handleRoundOver();
+            break;
         }
 
         // Draw the board.
-        if (ui._mode != MODE_ROUND_OVER) {
+        if (ui._mode == MODE_ROUND_OVER)
+            ui.drawRoundOver(gameState._valid_moves._flags & FLAG_MOUMOU);
+        else
             ui.drawBoard();
-        }
 
         // Draw other things based on the current state of the game.
         switch (ui._mode) {
@@ -87,9 +82,6 @@ void loop() {
         case MODE_PLAYER_MOVE:
             if (gameState._players[gameState._cur_player]._level == Human)
                 ui.drawCursor();
-            break;
-        case MODE_ROUND_OVER:
-            ui.drawWonGame();
             break;
         }
     }
@@ -190,6 +182,14 @@ void handleSuitSelector() {
     }
     if (gb.buttons.pressed(BTN_A))
         gameState._pending_cmd = CMD_DEMAND_SPADES + ui._selected_suit;
+}
+
+void handleRoundOver() {
+    if (gb.buttons.pressed(BTN_A)) {
+        gameState._players[0]._score += hand_score(&gameState, 0);
+        gameState._players[1]._score += hand_score(&gameState, 1);
+        gameState._pending_cmd = CMD_NEW_ROUND;
+    }
 }
 
 void checkWonGame() {

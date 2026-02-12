@@ -8,6 +8,16 @@ void new_round(GameState *state, UI *ui) {
     ui->_cursorX = 0;
     ui->_cursorY = 4;
 
+    state->_players[0]._hand.x = 4;
+    state->_players[0]._hand.y = 33;
+    state->_players[0]._hand.maxVisibleCards = 7;
+    state->_players[0]._hand.faceUp = true;
+
+    state->_players[1]._hand.x = 73;
+    state->_players[1]._hand.y = 1;
+    state->_players[1]._hand.maxVisibleCards = 1;
+    state->_players[1]._hand.faceUp = false;
+
     state->_deck.newDeck();
     state->_deck.shuffle();
 
@@ -18,7 +28,7 @@ void new_round(GameState *state, UI *ui) {
     state->_demanded = Undefined;
     state->_valid_moves._flags = FLAG_DRAW;
     state->_last_card = Card();
-    state->_moumou_counter = 0;
+    state->_moumou_counter = 1;
     state->_pending_cmd = CMD_NEXT_PLAYER;
     state->_fvm_calls = 0;
 
@@ -57,30 +67,37 @@ bool find_valid_moves(GameState *state, uint8_t player_idx) {
         return false;
     }
 
-    for (uint8_t i = 0; i < p->_hand._count; i++) {
-        Card *p_card = &p->_hand._items[i];
-        bool allowed = true;
-        if ((state->_valid_moves._flags & FLAG_RESTRICT_VALUE) &&
-            CardValue(*p_card) != CardValue(state->_last_card)) {
-            allowed = false;
-        } else if (CardValue(*p_card) != Jack && CardValue(*p_card) != Six) {
-            if (CardValue(*p_card) != CardValue(state->_last_card)) {
-                if (state->_demanded != Undefined)
-                    allowed = CardSuit(*p_card) == state->_demanded;
-                else
-                    allowed = CardSuit(*p_card) == CardSuit(state->_last_card);
-            }
-        }
-        if (allowed)
-            state->_valid_moves._items[state->_valid_moves._count++] = i;
-    }
-    if (CardValue(state->_last_card) == Six) {
-        state->_valid_moves._flags |= FLAG_DRAW;
-        state->_valid_moves._flags &= ~FLAG_PASS;
-    }
-    if (state->_valid_moves._count == 0 &&
-        !(state->_valid_moves._flags & FLAG_DRAW))
+    if (state->_valid_moves._flags & FLAG_MOUMOU) {
+        state->_valid_moves._flags &= ~FLAG_DRAW;
         state->_valid_moves._flags |= FLAG_PASS;
+    } else {
+        for (uint8_t i = 0; i < p->_hand._count; i++) {
+            Card *p_card = &p->_hand._items[i];
+            bool allowed = true;
+            if ((state->_valid_moves._flags & FLAG_RESTRICT_VALUE) &&
+                CardValue(*p_card) != CardValue(state->_last_card)) {
+                allowed = false;
+            } else if (CardValue(*p_card) != Jack &&
+                       CardValue(*p_card) != Six) {
+                if (CardValue(*p_card) != CardValue(state->_last_card)) {
+                    if (state->_demanded != Undefined)
+                        allowed = CardSuit(*p_card) == state->_demanded;
+                    else
+                        allowed =
+                            CardSuit(*p_card) == CardSuit(state->_last_card);
+                }
+            }
+            if (allowed)
+                state->_valid_moves._items[state->_valid_moves._count++] = i;
+        }
+        if (CardValue(state->_last_card) == Six) {
+            state->_valid_moves._flags |= FLAG_DRAW;
+            state->_valid_moves._flags &= ~FLAG_PASS;
+        }
+        if (state->_valid_moves._count == 0 &&
+            !(state->_valid_moves._flags & FLAG_DRAW))
+            state->_valid_moves._flags |= FLAG_PASS;
+    }
     return true;
 }
 
@@ -89,12 +106,17 @@ void process_command(GameState *state, UI *ui) {
     state->_pending_cmd = CMD_NONE;
     switch (state->_input_cmd) {
     case CMD_PASS:
-        state->_pending_cmd = CMD_NEXT_PLAYER;
-        if (state->_played._count && CardValue(state->_last_card) == Jack) {
-            state->_pending_cmd = ai_demand_suit(state);
+        if (state->_players[state->_cur_player]._hand._count == 0 ||
+            (state->_valid_moves._flags & FLAG_MOUMOU)) {
+            state->_pending_cmd = CMD_ROUND_OVER;
+        } else {
+            state->_pending_cmd = CMD_NEXT_PLAYER;
+            if (state->_played._count && CardValue(state->_last_card) == Jack) {
+                state->_pending_cmd = ai_demand_suit(state);
+            }
+            state->_valid_moves._flags &= ~FLAG_PASS;
+            state->_valid_moves._flags &= ~FLAG_RESTRICT_VALUE;
         }
-        state->_valid_moves._flags &= ~FLAG_PASS;
-        state->_valid_moves._flags &= ~FLAG_RESTRICT_VALUE;
         ui->startPass();
         break;
     case CMD_DRAW:
@@ -112,6 +134,21 @@ void process_command(GameState *state, UI *ui) {
         state->_pending_cmd = ai_move(state);
         break;
     case CMD_SELECT_SUIT:
+        break;
+    case CMD_ROUND_OVER:
+        state->_players[0]._hand.x = 4;
+        state->_players[0]._hand.y = 33;
+        state->_players[0]._hand.maxVisibleCards = 6;
+        state->_players[0]._hand.setFace(true);
+
+        state->_players[1]._hand.x = 4;
+        state->_players[1]._hand.y = 1;
+        state->_players[1]._hand.maxVisibleCards = 6;
+        state->_players[1]._hand.setFace(true);
+        ui->_mode = MODE_ROUND_OVER;
+        break;
+    case CMD_NEW_ROUND:
+        new_round(state, ui);
         break;
     case CMD_DEMAND_SPADES:
     case CMD_DEMAND_HEARTS:

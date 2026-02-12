@@ -17,6 +17,7 @@ class Pile {
     void newDeck();
     byte getMaxCards() const;
     byte getCardPosition(int indexFromTop) const;
+    void setFace(bool up);
 
     byte x, y;
     byte scrollOffset;

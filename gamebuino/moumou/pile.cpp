@@ -89,3 +89,9 @@ byte Pile::getCardPosition(int indexFromTop) const {
         return faceUp ? maxVisibleCards - 1 : 0;
     return indexFromTop - scrollOffset;
 }
+
+void Pile::setFace(bool up) {
+    faceUp = up;
+    for (int i = 0; i < _count; i++)
+        _items[i].setFace(up);
+}

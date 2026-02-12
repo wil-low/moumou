@@ -67,6 +67,7 @@ class UI {
 
     void drawBoard();
     void drawSuitSelector();
+    void drawRoundOver(bool is_moumou);
     void drawDeck(Pile *deck, bool showCount);
     void drawCard(byte x, byte y, Card card);
     void drawSuit(byte x, byte y, Suit suit);

@@ -19,6 +19,7 @@ void UI::drawBoard() {
     drawNumberRight(gameState._valid_moves._flags, 72, 10);
 
     drawNumberRight(gameState._valid_moves._count, 83, 17);
+    // drawNumberRight(gameState._moumou_counter, 83, 17);
     // drawNumberRight(gameState._pending_cmd, 83, 17);
     drawNumberRight(gameState._input_cmd, 83, 25);
 
@@ -37,7 +38,7 @@ void UI::drawBoard() {
     if (gameState._players[1]._hand._count != 0) {
         drawCard(gameState._players[1]._hand.x, gameState._players[1]._hand.y,
                  Card(Undefined, Spades, true));
-        // drawNumberRight(gameState._players[1]._hand._count, 72, 2);
+        drawNumberRight(gameState._players[1]._hand._count, 72, 2);
     }
 
     Player &p = gameState._players[0]; // gameState._cur_player];
@@ -66,8 +67,13 @@ void UI::drawBoard() {
             }
             if (gameState._valid_moves._flags & FLAG_DRAW)
                 drawAllowedMove(gameState._deck.x, gameState._deck.y);
-            if (gameState._valid_moves._flags & FLAG_PASS)
+            if (gameState._valid_moves._flags & FLAG_PASS) {
+                if (gameState._played._count == 0) {
+                    gb.display.setColor(GRAY);
+                    gb.display.drawRect(2, 17, 9, 13);
+                }
                 drawAllowedMove(gameState._played.x, gameState._played.y);
+            }
         }
     }
 
@@ -77,6 +83,49 @@ void UI::drawBoard() {
                 ? GRAY
                 : BLACK);
         drawSuit(63, 4, gameState._demanded);
+    }
+}
+
+void UI::drawRoundOver(bool is_moumou) {
+    static const char round_complete[] = "ROUND COMPLETE:";
+    static const char empty_hand[] = "EMPTY HAND";
+    static const char moumou[] = "MOUMOU";
+
+    gb.display.setColor(BLACK);
+    gb.display.fontSize = 1;
+
+    gb.display.cursorX = 8;
+    gb.display.cursorY = 17;
+    gb.display.print(round_complete);
+
+    gb.display.cursorY = 25;
+    if (is_moumou) {
+        gb.display.cursorX = 25;
+        gb.display.print(moumou);
+    } else {
+        gb.display.cursorX = 17;
+        gb.display.print(empty_hand);
+    }
+
+    // Bot deck
+    drawDeck(&gameState._players[1]._hand, false);
+    drawNumberRight(hand_score(&gameState, 1), 83, 5);
+    drawNumberRight(gameState._players[1]._score, 83, 17);
+    if (gameState._players[1]._hand._count >
+        gameState._players[1]._hand.maxVisibleCards) {
+        gb.display.drawPixel(70, 14);
+        gb.display.drawPixel(72, 14);
+        gb.display.drawPixel(74, 14);
+    }
+    // Human deck
+    drawDeck(&gameState._players[0]._hand, false);
+    drawNumberRight(gameState._players[0]._score, 83, 25);
+    drawNumberRight(hand_score(&gameState, 0), 83, 38);
+    if (gameState._players[1]._hand._count >
+        gameState._players[1]._hand.maxVisibleCards) {
+        gb.display.drawPixel(70, 14);
+        gb.display.drawPixel(72, 14);
+        gb.display.drawPixel(74, 14);
     }
 }
 
