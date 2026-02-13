@@ -70,7 +70,7 @@ void Pile::shuffle() {
 
 void Pile::newDeck() {
     empty();
-    for (int suit = Spades; suit <= Diamonds; suit++) {
+    for (int suit = Spades; suit <= Clubs; suit++) {
         for (int value = Six; value <= Ace; value++) {
             addCard(
                 Card(static_cast<Value>(value), static_cast<Suit>(suit), true));
