@@ -43,7 +43,6 @@
 | Ace                 | Opponent **skips turn** (not cumulative). Cannot be the last card to win.                                                                                                                      |
 | King of Clubs (Kc) | Opponent draws **5 cards** and **skips turn**.                                                                                                                                                 |
 | Jack                | Always playable. When played, **demand a suit**. Opponent must play: card of that suit, or another Jack. If not possible → draw 1 card → if still no → skip. Multiple Jacks = one suit demand. |
-| Last-card Jack      | If Jack(s) are played as last card(s) to empty hand: **no suit demand**; instead choose either: subtract 20 pts from your score or add 20 pts to opponent’s score.                             |
 
 ---
 
@@ -67,7 +66,7 @@
   * **Jacks:** 20 pts
   * **Aces:** 15 pts
   * **Kings/Queens:** 10 pts
-  * **Number cards:** face value (6–10)
+  * **Number cards:** no value
 * **Cumulative match:**
 
   * Players start at 0 pts.
