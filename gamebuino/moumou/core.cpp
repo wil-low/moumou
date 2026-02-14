@@ -144,6 +144,7 @@ void process_command(GameState *state, UI *ui) {
         state->_players[1]._hand.maxVisibleCards = 6;
         state->_players[1]._hand.setFace(true);
         ui->_mode = MODE_ROUND_OVER;
+        ui->_drawRoundOverTimer = ROUND_OVER_TIMER;
         break;
     case CMD_NEW_ROUND:
         new_round(state, ui);

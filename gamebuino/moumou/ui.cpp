@@ -130,6 +130,10 @@ void UI::drawRoundOver(bool is_moumou) {
         gb.display.drawPixel(72, 14);
         gb.display.drawPixel(74, 14);
     }
+    if (gameState._players[0]._level != Human && _drawRoundOverTimer == 0)
+        update_score(&gameState);
+    else
+        _drawRoundOverTimer--;
 }
 
 void UI::drawDealing() {

@@ -50,12 +50,10 @@ class UI {
     VersusMode _versusMode;
 
     // Used to deal at the start of the game.
-    CardAnimation _cardAnimations[INITIAL_HAND * 2 + 1];
+    CardAnimation _cardAnimations[Pile::_maxCards];
     byte _cardAnimationCount = 0;
 
-    // Keeps track of a bouncing card for the winning animation.
-    CardBounce _bounce;
-    byte _bounceIndex;
+    int _drawRoundOverTimer;
 
     int _versusCount[VersusMode::VersusCount];
     int _versusWon[VersusMode::VersusCount];
