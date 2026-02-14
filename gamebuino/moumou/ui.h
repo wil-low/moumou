@@ -55,8 +55,8 @@ class UI {
 
     int _drawRoundOverTimer;
 
-    int _versusCount[VersusMode::VersusCount];
-    int _versusWon[VersusMode::VersusCount];
+    uint16_t _versusCount[VersusMode::VersusCount];
+    uint16_t _versusWon[VersusMode::VersusCount];
 
     void showTitle();
     void pause();
@@ -88,6 +88,11 @@ class UI {
     void drawWonGame();
 
     void debug(uint8_t n0, uint8_t n1);
+
+    void readEeprom();
+    void writeEeprom(bool saveGame);
+    int savePile(int address, Pile *pile);
+    int loadPile(int address, Pile *pile);
 
   private:
     void getCursorDestination(byte &x, byte &y, bool &flipped);

@@ -56,6 +56,7 @@ class Player {
     AILevel _level;
     Pile _hand;
     uint16_t _score;
+    uint16_t _hand_score;
 };
 
 class ValidMoves {
@@ -90,8 +91,9 @@ bool find_valid_moves(GameState *state, uint8_t player_idx);
 void process_command(GameState *state, UI *ui);
 uint8_t opponent_draws(Card *p_card);
 void new_round(GameState *state, UI *ui);
+void initial_deal(GameState *state, UI *ui);
 uint16_t hand_score(GameState *state, uint8_t player_idx);
-void update_score(GameState *state);
+void update_score(GameState *state, UI *ui);
 void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit);
 
 #endif

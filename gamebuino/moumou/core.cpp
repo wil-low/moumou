@@ -34,8 +34,12 @@ void new_round(GameState *state, UI *ui) {
 
     state->_played.empty();
     state->_table.empty();
+}
 
-    // Initialize the data structure to deal out the initial board.
+void initial_deal(GameState *state, UI *ui) {
+    ui->_versusCount[ui->_versusMode]++;
+    ui->writeEeprom(false);
+
     ui->_cardAnimationCount = 0;
     for (int i = 0; i < INITIAL_HAND; i++)
         for (int p = 0; p < 2; p++)
@@ -138,16 +142,24 @@ void process_command(GameState *state, UI *ui) {
         state->_players[0]._hand.y = 33;
         state->_players[0]._hand.maxVisibleCards = 6;
         state->_players[0]._hand.setFace(true);
+        state->_players[0]._hand_score = hand_score(state, 0);
 
         state->_players[1]._hand.x = 4;
         state->_players[1]._hand.y = 1;
         state->_players[1]._hand.maxVisibleCards = 6;
         state->_players[1]._hand.setFace(true);
+        state->_players[1]._hand_score = hand_score(state, 1);
+
+        if (state->_players[0]._hand_score < state->_players[1]._hand_score) {
+            ui->_versusWon[ui->_versusMode]++;
+            ui->writeEeprom(false);
+        }
         ui->_mode = MODE_ROUND_OVER;
         ui->_drawRoundOverTimer = ROUND_OVER_TIMER;
         break;
     case CMD_NEW_ROUND:
         new_round(state, ui);
+        initial_deal(state, ui);
         break;
     case CMD_DEMAND_SPADES:
     case CMD_DEMAND_HEARTS:
@@ -210,9 +222,9 @@ void process_command(GameState *state, UI *ui) {
     }
 }
 
-void update_score(GameState *state) {
-    state->_players[0]._score += hand_score(state, 0);
-    state->_players[1]._score += hand_score(state, 1);
+void update_score(GameState *state, UI *ui) {
+    state->_players[0]._score += state->_players[0]._hand_score;
+    state->_players[1]._score += state->_players[1]._hand_score;
     state->_pending_cmd = CMD_NEW_ROUND;
 }
 

@@ -1,12 +1,9 @@
-#include <EEPROM.h>
 #include <Gamebuino.h>
 #include <SPI.h>
 
 #include "ai.h"
 #include "core.h"
 #include "ui.h"
-
-#define EEPROM_MAGIC_NUMBER 171
 
 Gamebuino gb;
 GameState gameState;
@@ -182,93 +179,5 @@ void handleSuitSelector() {
 
 void handleRoundOver() {
     if (gb.buttons.pressed(BTN_A))
-        update_score(&gameState);
+        update_score(&gameState, &ui);
 }
-
-void checkWonGame() {
-    /*
-    // Check to see if all hands are full
-    if (hands[0]._count == 13 &&
-        hands[1]._count == 13 &&
-        hands[2]._count == 13 &&
-        hands[3]._count == 13) {
-        ui._mode = gameOver;
-        if (cardsToDraw == 1) {
-            easyGamesWon++;
-            writeEeprom(false);
-        } else {
-            hardGamesWon++;
-            writeEeprom(false);
-        }
-    }
-        */
-}
-/*
-void readEeprom() {
-    if (EEPROM.read(0) != EEPROM_MAGIC_NUMBER)
-        return;
-
-    EEPROM.get(1, easyGameCount);
-    EEPROM.get(3, easyGamesWon);
-    EEPROM.get(5, hardGameCount);
-    EEPROM.get(7, hardGamesWon);
-
-    // Check to see if saved game.
-    if (EEPROM.read(9)) {
-        continueGame = true;
-        EEPROM.get(10, botLevel);
-        int address = 11;
-        address += loadPile(address, &gameState._deck);
-        address += loadPile(address, &talonDeck);
-        for (int i = 0; i < 4; i++)
-            address += loadPile(address, &hands[i]);
-        for (int i = 0; i < 7; i++)
-            address += loadPile(address, &tableau[i]);
-    }
-    else {
-        continueGame = false;
-    }
-}
-
-void writeEeprom(bool saveGame) {
-    EEPROM.update(0, EEPROM_MAGIC_NUMBER);
-    EEPROM.put(1, easyGameCount);
-    EEPROM.put(3, easyGamesWon);
-    EEPROM.put(5, hardGameCount);
-    EEPROM.put(7, hardGamesWon);
-
-    EEPROM.update(9, saveGame);
-    if (saveGame) {
-        EEPROM.put(10, botLevel);
-        int address = 11;
-        address += savePile(address, &gameState._deck);
-        address += savePile(address, &talonDeck);
-        for (int i = 0; i < 4; i++)
-            address += savePile(address, &hands[i]);
-        for (int i = 0; i < 7; i++)
-            address += savePile(address, &tableau[i]);
-    }
-}
-
-int savePile(int address, Pile *pile) {
-    EEPROM.put(address, pile->_count);
-    for (int i = 0; i < pile->getMaxCards(); i++) {
-        if (pile->_count > i) {
-            EEPROM.put(address + i + 1, pile->getCard(pile->_count - i -
-1));
-        }
-    }
-    return 1 + pile->getMaxCards();
-}
-
-int loadPile(int address, Pile *pile) {
-    pile->empty();
-    byte count = EEPROM.read(address);
-    for (byte i = 0; i < count; i++) {
-        Card card;
-        EEPROM.get(address + i + 1, card);
-        pile->addCard(card);
-    }
-    return 1 + pile->getMaxCards();
-}
-*/

@@ -1,7 +1,10 @@
 #include "ui.h"
 #include "ai.h"
 #include "config.h"
+#include <EEPROM.h>
 #include <Gamebuino.h>
+
+#define EEPROM_MAGIC_NUMBER 171
 
 // uncomment this line to show debug prints instead of scores
 // #define DEBUG_PRINTS
@@ -112,7 +115,7 @@ void UI::drawRoundOver(bool is_moumou) {
 
     // P1 deck
     drawDeck(&gameState._players[1]._hand, false);
-    drawNumberRight(hand_score(&gameState, 1), 83, 5);
+    drawNumberRight(gameState._players[1]._hand_score, 83, 5);
     drawNumberRight(gameState._players[1]._score, 83, 17);
     if (gameState._players[1]._hand._count >
         gameState._players[1]._hand.maxVisibleCards) {
@@ -123,15 +126,15 @@ void UI::drawRoundOver(bool is_moumou) {
     // P0 deck
     drawDeck(&gameState._players[0]._hand, false);
     drawNumberRight(gameState._players[0]._score, 83, 25);
-    drawNumberRight(hand_score(&gameState, 0), 83, 38);
+    drawNumberRight(gameState._players[0]._hand_score, 83, 38);
     if (gameState._players[1]._hand._count >
         gameState._players[1]._hand.maxVisibleCards) {
-        gb.display.drawPixel(70, 14);
-        gb.display.drawPixel(72, 14);
-        gb.display.drawPixel(74, 14);
+        gb.display.drawPixel(70, 46);
+        gb.display.drawPixel(72, 46);
+        gb.display.drawPixel(74, 46);
     }
     if (gameState._players[0]._level != Human && _drawRoundOverTimer == 0)
-        update_score(&gameState);
+        update_score(&gameState, this);
     else
         _drawRoundOverTimer--;
 }
@@ -220,17 +223,15 @@ start:
         gb.pickRandomSeed();
     gb.battery.show = false;
     new_round(&gameState, this);
-    /*readEeprom();
+    readEeprom();
 
     // If there is a saved game in EEPROM, just skip right to the game.
-    if (continueGame) {
+    /*if (continueGame) {
         writeEeprom(false);
         mode = MODE_PLAYER_MOVE;
         return;
     }*/
 
-    // Ask whether we want easy (flip 1 card per draw) or hard (flip 3 cards per
-    // draw).
     char menuOption;
 askAgain:
     menuOption = gb.menu(newGameMenu, 3);
@@ -242,8 +243,6 @@ askAgain:
         goto askAgain;
     default:
         _versusMode = menuOption;
-        _versusCount[_versusMode]++;
-        // writeEeprom(false);
         break;
     }
     switch (_versusMode) {
@@ -260,6 +259,7 @@ askAgain:
         gameState._players[1]._level = Level_1;
         break;
     }
+    initial_deal(&gameState, this);
 }
 
 void UI::pause() {
@@ -275,7 +275,7 @@ askAgain:
         break;
     case 3:
         // Save for later
-        // writeEeprom(true);
+        writeEeprom(true);
         showTitle();
         break;
     case 0:
@@ -885,4 +885,77 @@ void UI::drawNumberRight(uint16_t n, byte x, byte y) {
         n = n / 10;
         cur_x -= 4;
     }
+}
+
+void UI::readEeprom() {
+    if (EEPROM.read(0) != EEPROM_MAGIC_NUMBER)
+        return;
+    int address = 1;
+    for (uint8_t i = 0; i < VersusMode::VersusCount; i++) {
+        EEPROM.get(address, _versusCount[i]);
+        address += sizeof(_versusCount[i]);
+        EEPROM.get(address, _versusWon[i]);
+        address += sizeof(_versusWon[i]);
+    }
+    // Check to see if saved game.
+    /*
+    if (EEPROM.read(9)) {
+        continueGame = true;
+        EEPROM.get(10, botLevel);
+        int address = 11;
+        address += loadPile(address, &gameState._deck);
+        address += loadPile(address, &talonDeck);
+        for (int i = 0; i < 4; i++)
+            address += loadPile(address, &hands[i]);
+        for (int i = 0; i < 7; i++)
+            address += loadPile(address, &tableau[i]);
+    } else {
+        continueGame = false;
+    }
+    */
+}
+
+void UI::writeEeprom(bool saveGame) {
+    EEPROM.update(0, EEPROM_MAGIC_NUMBER);
+    int address = 1;
+    for (uint8_t i = 0; i < VersusMode::VersusCount; i++) {
+        EEPROM.put(address, _versusCount[i]);
+        address += sizeof(_versusCount[i]);
+        EEPROM.put(address, _versusWon[i]);
+        address += sizeof(_versusWon[i]);
+    }
+    /*
+    EEPROM.update(9, saveGame);
+    if (saveGame) {
+        EEPROM.put(10, botLevel);
+        int address = 11;
+        address += savePile(address, &gameState._deck);
+        address += savePile(address, &talonDeck);
+        for (int i = 0; i < 4; i++)
+            address += savePile(address, &hands[i]);
+        for (int i = 0; i < 7; i++)
+            address += savePile(address, &tableau[i]);
+    }
+    */
+}
+
+int UI::savePile(int address, Pile *pile) {
+    EEPROM.put(address, pile->_count);
+    for (int i = 0; i < pile->getMaxCards(); i++) {
+        if (pile->_count > i) {
+            EEPROM.put(address + i + 1, pile->getCard(pile->_count - i - 1));
+        }
+    }
+    return 1 + pile->getMaxCards();
+}
+
+int UI::loadPile(int address, Pile *pile) {
+    pile->empty();
+    byte count = EEPROM.read(address);
+    for (byte i = 0; i < count; i++) {
+        Card card;
+        EEPROM.get(address + i + 1, card);
+        pile->addCard(card);
+    }
+    return 1 + pile->getMaxCards();
 }
