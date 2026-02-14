@@ -30,6 +30,10 @@ void UI::drawBoard() {
     // Scores
     drawNumberRight(gameState._players[1]._score, 83, 17);
     drawNumberRight(gameState._players[0]._score, 83, 25);
+
+    // Player 1 card count
+    if (gameState._players[1]._hand._count)
+        drawNumberRight(gameState._players[1]._hand._count, 72, 10);
 #endif
 
     // Stock
@@ -38,10 +42,9 @@ void UI::drawBoard() {
     if (gameState._players[1]._hand._count != 0) {
         drawCard(gameState._players[1]._hand.x, gameState._players[1]._hand.y,
                  Card(Undefined, Spades, true));
-        drawNumberRight(gameState._players[1]._hand._count, 72, 2);
     }
 
-    Player &p = gameState._players[0]; // gameState._cur_player];
+    Player &p = gameState._players[0];
 
     drawDeck(&p._hand, false);
     if (p._hand.scrollOffset > 0)
@@ -82,15 +85,15 @@ void UI::drawBoard() {
             (gameState._demanded == Hearts || gameState._demanded == Diamonds)
                 ? GRAY
                 : BLACK);
-        drawSuit(63, 4, gameState._demanded);
+        drawSuit(63, 2, gameState._demanded);
     }
 }
 
-void UI::drawRoundOver(bool is_moumou) {
-    static const char round_complete[] = "ROUND COMPLETE:";
-    static const char empty_hand[] = "EMPTY HAND";
-    static const char moumou[] = "MOUMOU";
+static const char round_complete[] = "ROUND COMPLETE:";
+static const char empty_hand[] = "EMPTY HAND";
+static const char moumou[] = "MOUMOU";
 
+void UI::drawRoundOver(bool is_moumou) {
     gb.display.setColor(BLACK);
     gb.display.fontSize = 1;
 
@@ -107,7 +110,7 @@ void UI::drawRoundOver(bool is_moumou) {
         gb.display.print(empty_hand);
     }
 
-    // Bot deck
+    // P1 deck
     drawDeck(&gameState._players[1]._hand, false);
     drawNumberRight(hand_score(&gameState, 1), 83, 5);
     drawNumberRight(gameState._players[1]._score, 83, 17);
@@ -117,7 +120,7 @@ void UI::drawRoundOver(bool is_moumou) {
         gb.display.drawPixel(72, 14);
         gb.display.drawPixel(74, 14);
     }
-    // Human deck
+    // P0 deck
     drawDeck(&gameState._players[0]._hand, false);
     drawNumberRight(gameState._players[0]._score, 83, 25);
     drawNumberRight(hand_score(&gameState, 0), 83, 38);
@@ -156,17 +159,18 @@ void UI::drawDealing() {
     }
 }
 
-const char easyOption[] PROGMEM = "Bot level 1";
-const char hardOption[] PROGMEM = "Bot level 2";
+const char option0[] PROGMEM = "You vs L1";
+const char option1[] PROGMEM = "You vs L2";
+const char option2[] PROGMEM = "L2  vs L1";
 const char statisticsOption[] PROGMEM = "Game statistics";
-const char *const newGameMenu[3] PROGMEM = {easyOption, hardOption,
-                                            statisticsOption};
+const char *const newGameMenu[] PROGMEM = {option0, option1, option2,
+                                           statisticsOption};
 
 const char quitOption[] PROGMEM = "Quit game";
 const char resumeOption[] PROGMEM = "Resume game";
 const char saveOption[] PROGMEM = "Save for later";
-const char *const pauseMenu[5] PROGMEM = {resumeOption, quitOption,
-                                          statisticsOption, saveOption};
+const char *const pauseMenu[] PROGMEM = {resumeOption, quitOption,
+                                         statisticsOption, saveOption};
 
 bool continueGame;
 
@@ -197,6 +201,11 @@ const byte title[] PROGMEM = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00};
 
+UI::UI() {
+    memset(_versusCount, 0, sizeof(_versusCount));
+    memset(_versusWon, 0, sizeof(_versusWon));
+}
+
 void UI::showTitle() {
 start:
     gb.display.persistence = true;
@@ -221,20 +230,31 @@ start:
     char menuOption;
 askAgain:
     menuOption = gb.menu(newGameMenu, 3);
-    if (menuOption == -1)
+    switch (menuOption) {
+    case -1:
         goto start;
-
-    if (menuOption == 0) {
-        _botLevel = 1;
-        _easyGameCount++;
-        // writeEeprom(false);
-    } else if (menuOption == 1) {
-        _botLevel = 2;
-        _hardGameCount++;
-        // writeEeprom(false);
-    } else {
+    case VersusMode::VersusCount:
         displayStatistics();
         goto askAgain;
+    default:
+        _versusMode = menuOption;
+        _versusCount[_versusMode]++;
+        // writeEeprom(false);
+        break;
+    }
+    switch (_versusMode) {
+    case Human_L2:
+        gameState._players[0]._level = Human;
+        gameState._players[1]._level = Level_2;
+        break;
+    case L2_L1:
+        gameState._players[0]._level = Level_2;
+        gameState._players[1]._level = Level_1;
+        break;
+    default:
+        gameState._players[0]._level = Human;
+        gameState._players[1]._level = Level_1;
+        break;
     }
 }
 
@@ -683,15 +703,14 @@ void UI::displayStatistics() {
         if (gb.update()) {
             gb.display.cursorX = 0;
             gb.display.cursorY = 0;
-            gb.display.print(F("Easy started: "));
-            gb.display.println(_easyGameCount);
-            gb.display.print(F("Easy won:     "));
-            gb.display.println(_easyGamesWon);
-            gb.display.print(F("Hard started: "));
-            gb.display.println(_hardGameCount);
-            gb.display.print(F("Hard won:     "));
-            gb.display.println(_hardGamesWon);
-
+            for (uint8_t i = 0; i < VersusMode::VersusCount; i++) {
+                gb.display.print((const __FlashStringHelper *)pgm_read_word(
+                    newGameMenu + i));
+                gb.display.print(F(": "));
+                gb.display.print(_versusCount[i]);
+                gb.display.print(F(", won "));
+                gb.display.println(_versusWon[i]);
+            }
             if (gb.buttons.pressed(BTN_A) || gb.buttons.pressed(BTN_B) ||
                 gb.buttons.pressed(BTN_C))
                 return;

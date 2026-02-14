@@ -13,6 +13,13 @@ typedef enum {
 } AILevel;
 
 typedef enum {
+    Human_L1 = 0,
+    Human_L2,
+    L2_L1,
+    VersusCount
+} VersusMode;
+
+typedef enum {
     MODE_PLAYER_MOVE = 0,
     MODE_ANIMATE,
     MODE_SELECT_SUIT,
@@ -53,7 +60,7 @@ class Player {
 
 class ValidMoves {
   public:
-    uint8_t _items[MAX_CARDS_IN_HAND];
+    uint8_t _items[Pile::_maxCards];
     uint8_t _count;
     uint8_t _flags;
 };

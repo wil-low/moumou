@@ -35,8 +35,6 @@ void new_round(GameState *state, UI *ui) {
     state->_played.empty();
     state->_table.empty();
 
-    state->_players[1]._level = PLAYER1_LEVEL;
-
     // Initialize the data structure to deal out the initial board.
     ui->_cardAnimationCount = 0;
     for (int i = 0; i < INITIAL_HAND; i++)
@@ -210,52 +208,12 @@ void process_command(GameState *state, UI *ui) {
     } break;
     }
 }
-/*
-void process_input(GameState *state, UI *ui) {
-    if (state->_input_cmd != CMD_NONE) {
-        if (state->_input_cmd == CMD_DRAW) {
-            + state->_valid_moves._flags &= ~FLAG_DRAW;
-        } else if (state->_input_cmd == CMD_PASS) {
-        } else {
-            uint8_t result =
-                play_card(state, state->_cur_player, state->_input_cmd);
-            if (state->_valid_moves._flags & FLAG_MOUMOU) {
-                // printf("Player #%d declares Moumou\n",
-                //        state->_cur_player);
-                update_score(state);
-                new_round(state, ui);
-                return;
-            } else {
-                state->_demanded = Undefined;
-                if (result != PLAY_OPPONENT_SKIPS &&
-                    CardValue(state->_last_card) != Six)
-                    state->_valid_moves._flags |= FLAG_RESTRICT_VALUE;
-                else
-                    state->_valid_moves._flags &= ~FLAG_RESTRICT_VALUE;
-            }
-        }
-        if (CardValue(state->_last_card) != Six)
-            state->_valid_moves._flags |= FLAG_PASS;
-        else
-            state->_valid_moves._flags &= ~FLAG_PASS;
 
-        if (state->_input_cmd == CMD_PASS) {
-            if (state->_played._count && CardValue(state->_last_card) ==
-                Jack) {
-                state->_demanded = Undefined;
-                // state->_demanded = input_suit(state);
-            }
-            // move_played_to_table(state);
-            state->_valid_moves._flags &= ~FLAG_PASS;
-            state->_valid_moves._flags &= ~FLAG_RESTRICT_VALUE;
-            state->_turn++;
-            state->_cur_player = (state->_cur_player + 1) % PLAYER_COUNT;
-        }
-        state->_input_cmd = CMD_NONE;
-        // ui->turnLoop();
-    }
+void update_score(GameState *state) {
+    state->_players[0]._score += hand_score(state, 0);
+    state->_players[1]._score += hand_score(state, 1);
+    state->_pending_cmd = CMD_NEW_ROUND;
 }
-*/
 
 uint8_t opponent_draws(Card *p_card) {
     if (CardValue(*p_card) == Eight)
@@ -307,12 +265,4 @@ uint16_t hand_score(GameState *state, uint8_t player_idx) {
         }
     }
     return score;
-}
-
-void update_score(GameState *state) {
-    for (uint8_t i = 0; i < PLAYER_COUNT; ++i) {
-        Player *p = &state->_players[i];
-        p->_score += hand_score(state, i);
-        printf("Player #%d score: %d\n", i, p->_score);
-    }
 }

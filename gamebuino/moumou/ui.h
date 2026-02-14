@@ -28,6 +28,8 @@ struct CardBounce {
 
 class UI {
   public:
+    UI();
+
     // State of the game.
     GameMode _mode = MODE_PLAYER_MOVE;
 
@@ -45,7 +47,7 @@ class UI {
     Suit _selected_suit;
 
     // AI level
-    byte _botLevel;
+    VersusMode _versusMode;
 
     // Used to deal at the start of the game.
     CardAnimation _cardAnimations[INITIAL_HAND * 2 + 1];
@@ -55,7 +57,8 @@ class UI {
     CardBounce _bounce;
     byte _bounceIndex;
 
-    int _easyGameCount, _easyGamesWon, _hardGameCount, _hardGamesWon;
+    int _versusCount[VersusMode::VersusCount];
+    int _versusWon[VersusMode::VersusCount];
 
     void showTitle();
     void pause();

@@ -6,7 +6,6 @@
 #include "core.h"
 #include "ui.h"
 
-#define MAX_CARDS_DRAWN_IN_PILE 10
 #define EEPROM_MAGIC_NUMBER 171
 
 Gamebuino gb;
@@ -36,8 +35,6 @@ void setup() {
 
     gameState._players[0]._score = 0;
     gameState._players[1]._score = 0;
-
-    gameState._players[0]._level = PLAYER0_LEVEL;
 
     ui.showTitle();
 }
@@ -121,8 +118,7 @@ void handleSelectingButtons() {
             ui._activeLocation = ui._activeLocation - 1;
     }
     if (gb.buttons.pressed(BTN_B)) {
-        if (gameState._deck._count != 0) {
-            // drawAndFlip(&gameState._deck, &gameState._players[0]._hand);
+        /*if (gameState._deck._count != 0) {
             ui._cardAnimationCount = 0;
             ui.animateMove(&gameState._deck, 0, &gameState._players[1]._hand,
                            gameState._players[1]._hand._count);
@@ -130,7 +126,7 @@ void handleSelectingButtons() {
             ui._cardAnimationCount = 0;
             ui._mode = MODE_ANIMATE;
             // playSoundA();
-        }
+        }*/
     } else if (gb.buttons.pressed(BTN_A)) {
 
         switch (ui._activeLocation) {
@@ -185,11 +181,8 @@ void handleSuitSelector() {
 }
 
 void handleRoundOver() {
-    if (gb.buttons.pressed(BTN_A)) {
-        gameState._players[0]._score += hand_score(&gameState, 0);
-        gameState._players[1]._score += hand_score(&gameState, 1);
-        gameState._pending_cmd = CMD_NEW_ROUND;
-    }
+    if (gb.buttons.pressed(BTN_A))
+        update_score(&gameState);
 }
 
 void checkWonGame() {
