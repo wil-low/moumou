@@ -1,0 +1,111 @@
+#ifndef _CORE_H_
+#define _CORE_H_
+
+#include "config.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#define Undefined UINT8_MAX
+
+#ifdef __x86_64__
+#define INLINE inline
+#else
+#define INLINE
+#endif
+
+typedef enum {
+    Spades = 0,
+    Hearts,
+    Diamonds,
+    Clubs,
+    SuitCount
+} Suit;
+
+typedef enum {
+    Six = 0,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Jack,
+    Queen,
+    King,
+    Ace,
+    ValueCount
+} Value;
+
+static const char SUITS[] = "shdc";
+static const char VALUES[] = "6789TJQKA";
+
+typedef uint8_t Card;
+static INLINE uint8_t CardValue(Card card) {
+    return card & 0b1111;
+}
+static INLINE uint8_t CardSuit(Card card) {
+    return (card >> 4) & 0b11;
+}
+static INLINE uint8_t CardFlags(Card card) {
+    return card >> 6;
+}
+
+typedef struct {
+    uint8_t _count;
+    Card _items[SuitCount * ValueCount];
+} Deck;
+
+typedef enum {
+    Human = 0,
+    Level_1,
+    Level_2,
+} AILevel;
+
+#define CMD_DRAW 253
+#define CMD_PASS 254
+
+#define PLAY_OK 0
+#define PLAY_OPPONENT_SKIPS 1
+#define PLAY_MOUMOU 2
+
+typedef struct {
+    AILevel _level;
+    Deck _hand;
+    uint16_t _score;
+} Player;
+
+typedef struct {
+    uint8_t _items[MAX_CARDS_IN_HAND];
+    uint8_t _count;
+    bool _draw;
+    bool _pass;
+    bool _restrict_value;
+} ValidMoves;
+
+typedef struct {
+    Player _players[PLAYER_COUNT];
+    Deck _deck;
+    Deck _table;
+    Deck _played;
+    uint8_t _cur_player;
+    uint8_t _turn;
+    Suit _demanded;
+    ValidMoves _valid_moves;
+    Card _last_card;
+    uint8_t _moumou_counter;
+} GameState;
+
+void recycle_deck(GameState *state);
+void move_played_to_table(GameState *state);
+Card deal(GameState *state);
+bool draw(GameState *state, uint8_t player_idx, uint8_t count);
+bool find_valid_moves(GameState *state, uint8_t player_idx);
+uint8_t play_card(GameState *state, uint8_t player_idx, uint8_t card_idx);
+void new_round(GameState *state);
+uint16_t hand_score(GameState *state, uint8_t player_idx);
+void update_score(GameState *state);
+void deal_card(GameState *state, uint8_t player_idx, Value value, Suit suit);
+
+uint8_t input_move(GameState *state);
+Suit input_suit(GameState *);
+void input_wait(const char *message);
+
+#endif
