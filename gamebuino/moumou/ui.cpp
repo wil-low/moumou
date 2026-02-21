@@ -64,13 +64,14 @@ void UI::drawBoard() {
 
         if (_mode != MODE_ANIMATE) {
             uint8_t idx = 0;
-            for (uint8_t i = 0; i < p._hand.maxVisibleCards; ++i) {
-                uint8_t real_idx = i + p._hand.scrollOffset;
-                if (real_idx >= p._hand._count)
-                    break;
+            for (uint8_t i = 0; i < p._hand._count; ++i) {
                 if (idx < gameState._valid_moves._count &&
-                    real_idx == gameState._valid_moves._items[idx]) {
-                    drawAllowedMove(p._hand.x + 11 * i, p._hand.y);
+                    i == gameState._valid_moves._items[idx]) {
+                    if (i >= p._hand.scrollOffset &&
+                        i - p._hand.scrollOffset < p._hand.maxVisibleCards)
+                        drawAllowedMove(p._hand.x +
+                                            11 * (i - p._hand.scrollOffset),
+                                        p._hand.y);
                     idx++;
                 }
             }
