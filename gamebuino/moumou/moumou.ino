@@ -30,9 +30,6 @@ void setup() {
     gameState._played.maxVisibleCards = 6;
     gameState._played.scrollToLast = true;
 
-    gameState._players[0]._score = 0;
-    gameState._players[1]._score = 0;
-
     ui.showTitle();
 }
 

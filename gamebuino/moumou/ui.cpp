@@ -36,7 +36,7 @@ void UI::drawBoard() {
 
     // Player 1 card count
     if (gameState._players[1]._hand._count)
-        drawNumberRight(gameState._players[1]._hand._count, 72, 10);
+        drawNumberRight(gameState._players[1]._hand._count, 72, 8);
 #endif
 
     // Stock
@@ -64,9 +64,12 @@ void UI::drawBoard() {
 
         if (_mode != MODE_ANIMATE) {
             uint8_t idx = 0;
-            for (uint8_t i = 0; i < p._hand._count; ++i) {
+            for (uint8_t i = 0; i < p._hand.maxVisibleCards; ++i) {
+                uint8_t real_idx = i + p._hand.scrollOffset;
+                if (real_idx >= p._hand._count)
+                    break;
                 if (idx < gameState._valid_moves._count &&
-                    i == gameState._valid_moves._items[idx]) {
+                    real_idx == gameState._valid_moves._items[idx]) {
                     drawAllowedMove(p._hand.x + 11 * i, p._hand.y);
                     idx++;
                 }
@@ -127,8 +130,8 @@ void UI::drawRoundOver(bool is_moumou) {
     drawDeck(&gameState._players[0]._hand, false);
     drawNumberRight(gameState._players[0]._score, 83, 25);
     drawNumberRight(gameState._players[0]._hand_score, 83, 38);
-    if (gameState._players[1]._hand._count >
-        gameState._players[1]._hand.maxVisibleCards) {
+    if (gameState._players[0]._hand._count >
+        gameState._players[0]._hand.maxVisibleCards) {
         gb.display.drawPixel(70, 46);
         gb.display.drawPixel(72, 46);
         gb.display.drawPixel(74, 46);
@@ -214,6 +217,9 @@ UI::UI() {
 }
 
 void UI::showTitle() {
+    gameState._players[0]._score = 0;
+    gameState._players[1]._score = 0;
+
 start:
     gb.display.persistence = true;
     gb.titleScreen(F(""), title);
@@ -710,9 +716,9 @@ void UI::displayStatistics() {
             for (uint8_t i = 0; i < VersusMode::VersusCount; i++) {
                 gb.display.print((const __FlashStringHelper *)pgm_read_word(
                     newGameMenu + i));
-                gb.display.print(F(": "));
+                gb.display.print(F(": total "));
                 gb.display.print(_versusCount[i]);
-                gb.display.print(F(", won "));
+                gb.display.print(F("\n             won "));
                 gb.display.println(_versusWon[i]);
             }
             if (gb.buttons.pressed(BTN_A) || gb.buttons.pressed(BTN_B) ||
